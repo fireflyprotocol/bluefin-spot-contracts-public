@@ -1,0 +1,6 @@
+/build
+/coverage
+/.nyc_output
+/node_modules
+/dist
+/.github/pull_request_template.md
