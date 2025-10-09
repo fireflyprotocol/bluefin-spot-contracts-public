@@ -20,7 +20,6 @@ module bluefin_spot::pool {
     use sui::event::emit;
     use sui::dynamic_field as field;
 
-    
     // local modules
     use bluefin_spot::constants;
     use bluefin_spot::config::{Self, GlobalConfig};
@@ -409,15 +408,15 @@ module bluefin_spot::pool {
         fee_rate: u64,
         current_sqrt_price: u128,
         creation_fee: Balance<CoinTypeFee>,
-        lower_tick_bits: u32, 
-        upper_tick_bits: u32, 
+        lower_tick_bits: u32,
+        upper_tick_bits: u32,
         balance_a: Balance<CoinTypeA>,
         balance_b: Balance<CoinTypeB>,
         amount: u64,
         is_fixed_a: bool,
         ctx: &mut TxContext): (ID, Position,  u64, u64, Balance<CoinTypeA>, Balance<CoinTypeB>) {
 
-            // create pool
+        // create pool
         let pool = create_pool_internal<CoinTypeA, CoinTypeB>(
             clock,
             protocol_config,
@@ -506,7 +505,7 @@ module bluefin_spot::pool {
         pool
     }
 
-    #[allow(lint(share_owned))]
+    #[allow(lint(share_owned), lint(custom_state_change))]
     public fun share_pool_object<CoinTypeA, CoinTypeB>(pool: Pool<CoinTypeA, CoinTypeB>) {
         transfer::share_object(pool);
     }
@@ -1151,7 +1150,7 @@ module bluefin_spot::pool {
 
         let (lower_tick, upper_tick) = (i32::from_u32(lower_tick_bits), i32::from_u32(upper_tick_bits));
 
-        // validate ticks
+        //validate ticks
         assert!(
             i32::lt(lower_tick, upper_tick) &&
             i32::gte(lower_tick, i32H::mate_to_lib(min_allowed_tick)) && 
@@ -2099,6 +2098,10 @@ module bluefin_spot::pool {
         field::exists_(pool, constants::flash_swap_in_progress_key())
     }
 
+    #[test_only]
+    public fun is_pool_paused<CoinTypeA,CoinTypeB>(pool: &Pool<CoinTypeA, CoinTypeB>): bool {
+        pool.is_paused
+    }
 
     #[test_only]
     public fun create_test_pool_without_liquidity<CoinTypeA, CoinTypeB, CoinTypeFee>(

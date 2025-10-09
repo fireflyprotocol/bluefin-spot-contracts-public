@@ -26,6 +26,8 @@ module bluefin_spot::config {
     // friend modules
     friend bluefin_spot::admin;
     friend bluefin_spot::pool;
+    #[test_only]
+    friend bluefin_spot::test_config;
 
     //===========================================================//
     //                         Constants                         //
@@ -180,4 +182,50 @@ module bluefin_spot::config {
         increase_version(config)
     }
 
+    #[test_only]
+    public fun get_supported_version(config: &GlobalConfig): u64 {
+        config.version
+    }
+
+    #[test_only]
+    public fun init_test(ctx: &mut TxContext) {
+        init(ctx);
+    }
+
+    #[test_only]
+    public fun set_version(config: &mut GlobalConfig, version: u64){
+        config.version = version
+    }
+
+    // Additional test-only helper functions
+    #[test_only]
+    public fun get_reward_managers(config: &GlobalConfig): &vector<address> {
+        &config.reward_managers
+    }
+
+    #[test_only]
+    public fun get_min_tick(config: &GlobalConfig): I32 {
+        config.min_tick
+    }
+
+    #[test_only]
+    public fun get_max_tick(config: &GlobalConfig): I32 {
+        config.max_tick
+    }
+
+    #[test_only]
+    public fun get_version(config: &GlobalConfig): u64 {
+        config.version
+    }
+
+    #[test_only]
+    public fun get_id(config: &GlobalConfig): &UID {
+        &config.id
+    }
+
+    #[test_only]
+    public fun destroy_config_for_testing(config: GlobalConfig) {
+        let GlobalConfig { id, min_tick: _, max_tick: _, version: _, reward_managers: _ } = config;
+        object::delete(id);
+    }
 }

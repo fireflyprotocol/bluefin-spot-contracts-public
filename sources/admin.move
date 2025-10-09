@@ -69,6 +69,7 @@ module bluefin_spot::admin {
     /// Parameters:
     /// - cap: The AdminCap, ensuring the caller is the current admin.
     /// - account: The address of the new admin
+    #[allow(lint(public_entry))]
     public entry fun transer_admin_cap(protocol_config: &GlobalConfig, cap: AdminCap, account:address){
     
         // verify version
@@ -85,6 +86,7 @@ module bluefin_spot::admin {
     /// Parameters:
     /// - cap: The ProtocolFeeCap, ensuring the caller is the current owner fee cap owner.
     /// - account: The address of the new fee cap account
+    #[allow(lint(public_entry))]
     public entry fun transer_protocol_fee_cap(protocol_config: &GlobalConfig, cap: ProtocolFeeCap, account:address){
 
         // verify version
@@ -108,6 +110,7 @@ module bluefin_spot::admin {
     /// - coin_b_amount: The amount of coin B fee to be withdrawn
     /// - destination: The address to which fee amount will be transferred
     /// - ctx: Mutable Tx Context of the sender/caller
+    #[allow(lint(public_entry))]
     public entry fun claim_protocol_fee<CoinTypeA, CoinTypeB>(_: &ProtocolFeeCap, protocol_config: &GlobalConfig, pool: &mut Pool<CoinTypeA, CoinTypeB>, coin_a_amount: u64, coin_b_amount: u64, destination: address, ctx: &mut TxContext){
         
         // verify version
@@ -149,6 +152,7 @@ module bluefin_spot::admin {
    /// - cap: The AdminCap, ensuring the caller is the current admin.
    /// - protocol_config: mutable Global Config object
    /// - manager: The address of the manager to be removed
+   #[allow(lint(public_entry))]
    public entry fun remove_reward_manager(_: &AdminCap, protocol_config: &mut GlobalConfig, manager: address)
    {
         // verify version
@@ -165,6 +169,7 @@ module bluefin_spot::admin {
    /// - cap: The AdminCap, ensuring the caller is the current admin.
    /// - protocol_config: mutable Global Config object
    /// - status: status to be set
+   #[allow(lint(public_entry))]
    public entry fun update_pool_pause_status<CoinTypeA, CoinTypeB>(_: &AdminCap, protocol_config: &GlobalConfig, pool: &mut Pool<CoinTypeA, CoinTypeB>, status: bool)
    {
         // verify version
@@ -177,6 +182,7 @@ module bluefin_spot::admin {
    /// - cap: The AdminCap, ensuring the caller is the current admin.
    /// - protocol_config: mutable Global Config object
    /// - manager: The address of the new manager to be added
+   #[allow(lint(public_entry))]
    public entry fun add_reward_manager(_: &AdminCap, protocol_config: &mut GlobalConfig, manager: address)
    {
          // verify version
@@ -198,6 +204,7 @@ module bluefin_spot::admin {
    /// - reward_coin: coin Object with balance for the reward that is to be initialized
    /// - reward_amount: amount of rewards to be given out
    /// - clock : sui clock object
+   #[allow(lint(public_entry))]
    public entry fun initialize_pool_reward<CoinTypeA, CoinTypeB, RewardCoinType>(
         protocol_config: &GlobalConfig,
         pool: &mut Pool<CoinTypeA, CoinTypeB>, 
@@ -251,6 +258,7 @@ module bluefin_spot::admin {
     /// - reward_amount: amount of rewards to be given out
     /// - clock : sui clock object
     /// 
+    #[allow(lint(public_entry))]
     public entry fun update_pool_reward_emission<CoinTypeA, CoinTypeB, RewardCoinType>(
         protocol_config: &GlobalConfig,
         pool: &mut  Pool<CoinTypeA, CoinTypeB>, 
@@ -291,6 +299,7 @@ module bluefin_spot::admin {
     /// - seconds_to_add: seconds to increase for reward emission.
     /// - clock : sui clock object
     /// 
+    #[allow(lint(public_entry))]
     public fun add_seconds_to_reward_emission<CoinTypeA, CoinTypeB, RewardCoinType>(
         protocol_config: &GlobalConfig,
         pool: &mut Pool<CoinTypeA, CoinTypeB>, 
@@ -325,6 +334,7 @@ module bluefin_spot::admin {
     /// Parameters:
     /// - _: Reference to admin cap
     /// - protocol_config: The protocol config that needs to be updated
+    #[allow(lint(public_entry))]
     public entry fun update_supported_version(_: &AdminCap, protocol_config: &mut GlobalConfig){
 
         // increase version
@@ -342,6 +352,7 @@ module bluefin_spot::admin {
     /// - _: Reference to admin cap to ensure the caller is protocol's admin
     /// - pool: The pool for which to update the protocol fee share
     /// - protocol_fee_share: The new protocol fee share (should be <= 50%)
+    #[allow(lint(public_entry))]
     public entry fun update_protocol_fee_share<CoinTypeA, CoinTypeB>(_: &AdminCap, pool: &mut Pool<CoinTypeA, CoinTypeB>, protocol_fee_share: u64){
 
 
@@ -367,6 +378,7 @@ module bluefin_spot::admin {
     /// - _: Reference to admin cap to ensure the caller is protocol's admin
     /// - pool: The pool for which to update the observation cardinality
     /// - value: The new cardinality
+    #[allow(lint(public_entry))]
     public entry fun increase_observation_cardinality_next<CoinTypeA, CoinTypeB>(_: &AdminCap, pool: &mut Pool<CoinTypeA, CoinTypeB>, value: u64){
         
         assert!(value < constants::max_observation_cardinality(), errors::invalid_observation_cardinality());
@@ -381,6 +393,7 @@ module bluefin_spot::admin {
     /// - pool : pool object
     /// - pool_manger: address of new manager
     /// - ctx: transaction context
+    #[allow(lint(public_entry))]
     public entry fun set_pool_manager<CoinTypeA, CoinTypeB>(
         protocol_config: &GlobalConfig, 
         pool: &mut Pool<CoinTypeA, CoinTypeB>,
@@ -398,6 +411,7 @@ module bluefin_spot::admin {
     /// - protocol_config: global config object for spot protocol
     /// - new_fee_amount : the amount of fee to be paid for pool creation 
     /// - ctx: transaction context
+     #[allow(lint(public_entry))]
     public entry fun set_pool_creation_fee<CoinTypeFee>(
         _: &AdminCap,
         protocol_config: &mut GlobalConfig, 
@@ -446,6 +460,7 @@ module bluefin_spot::admin {
     /// - amount : The amount of creation fee to be transferred
     /// - destination: The account to which fee is to be sent 
     /// - ctx: transaction context
+     #[allow(lint(public_entry))]
     public entry fun claim_pool_creation_fee<CoinTypeFee>(
         _: &ProtocolFeeCap,
         protocol_config: &mut GlobalConfig, 
@@ -483,6 +498,7 @@ module bluefin_spot::admin {
 
     /// Allows the admin of the protocol to add reward coin tokens to a pool 
     /// without increasing its total reward amount emission
+    #[allow(lint(public_entry))]
     entry fun add_reward_reserves_to_pool<CoinTypeA, CoinTypeB, RewardCoinType>(
         _: &AdminCap,
         protocol_config: &GlobalConfig,
@@ -501,6 +517,7 @@ module bluefin_spot::admin {
     /// - protocol_config: global config object for spot protocol
     /// - pool: The pool for which to update the icon url
     /// - icon_url: The new icon url
+    #[allow(lint(public_entry))]
     entry fun set_pool_icon_url<CoinTypeA, CoinTypeB>(_: &AdminCap, protocol_config: &GlobalConfig, pool: &mut Pool<CoinTypeA, CoinTypeB>, icon_url: String){
         config::verify_version(protocol_config);
         pool::set_pool_icon_url(pool, icon_url);
@@ -515,5 +532,10 @@ module bluefin_spot::admin {
     #[test_only]
     public fun get_fee_cap(ctx: &mut TxContext): ProtocolFeeCap {
         ProtocolFeeCap { id: object::new(ctx) }
+    }
+
+     #[test_only]
+    public fun test_init(ctx: &mut TxContext){
+        init(ctx);
     }
 }

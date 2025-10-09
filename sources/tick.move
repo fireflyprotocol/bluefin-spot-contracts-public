@@ -30,6 +30,8 @@ module bluefin_spot::tick {
 
     // friend modules
     friend bluefin_spot::pool;
+    #[test_only]
+    friend bluefin_spot::test_tick;
 
     //===========================================================//
     //                           Structs                         //
@@ -291,6 +293,12 @@ module bluefin_spot::tick {
         };
         diff_in_reward_growths
     }
-   
+
+    #[test_only]
+    public fun destroy_manager_for_testing(manager: TickManager) {
+        let TickManager { tick_spacing: _, ticks, bitmap } = manager;
+        table::drop(ticks);
+        table::drop(bitmap);
+    }   
 
 }

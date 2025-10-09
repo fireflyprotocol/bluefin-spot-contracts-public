@@ -698,4 +698,594 @@ module bluefin_spot::clmm_math {
         assert!(recv_amount_a <= amount_a, 0);
         assert!(recv_amount_b <= amount_b, 0);
     }
+
+    //===========================================================//
+    //              Additional Coverage Tests                   //
+    //===========================================================//
+
+    #[test]
+    fun test_fee_rate_denominator() {
+        assert!(fee_rate_denominator() == 1000000, 0);
+    }
+
+    #[test]
+    fun test_get_liquidity_from_a_edge_cases() {
+        use integer_mate::i32;
+        
+        // Test with zero amount
+        let sqrt_price_0 = tick_math::get_sqrt_price_at_tick(i32::from(0));
+        let sqrt_price_1 = tick_math::get_sqrt_price_at_tick(i32::from(100));
+        assert!(get_liquidity_from_a(sqrt_price_0, sqrt_price_1, 0, false) == 0, 0);
+        assert!(get_liquidity_from_a(sqrt_price_0, sqrt_price_1, 0, true) == 0, 1);
+        
+        // Test with reversed price order
+        let liquidity_normal = get_liquidity_from_a(sqrt_price_0, sqrt_price_1, 1000, false);
+        let liquidity_reversed = get_liquidity_from_a(sqrt_price_1, sqrt_price_0, 1000, false);
+        assert!(liquidity_normal == liquidity_reversed, 4);
+        
+        // Test rounding differences
+        let liquidity_round_down = get_liquidity_from_a(sqrt_price_0, sqrt_price_1, 1000, false);
+        let liquidity_round_up = get_liquidity_from_a(sqrt_price_0, sqrt_price_1, 1000, true);
+        assert!(liquidity_round_up >= liquidity_round_down, 5);
+    }
+
+    #[test]
+    fun test_get_liquidity_from_b_edge_cases() {
+        use integer_mate::i32;
+        
+        // Test with zero amount
+        let sqrt_price_0 = tick_math::get_sqrt_price_at_tick(i32::from(0));
+        let sqrt_price_1 = tick_math::get_sqrt_price_at_tick(i32::from(100));
+        assert!(get_liquidity_from_b(sqrt_price_0, sqrt_price_1, 0, false) == 0, 0);
+        assert!(get_liquidity_from_b(sqrt_price_0, sqrt_price_1, 0, true) == 0, 1);
+        
+        // Test with reversed price order
+        let liquidity_normal = get_liquidity_from_b(sqrt_price_0, sqrt_price_1, 1000, false);
+        let liquidity_reversed = get_liquidity_from_b(sqrt_price_1, sqrt_price_0, 1000, false);
+        assert!(liquidity_normal == liquidity_reversed, 4);
+        
+        // Test rounding differences
+        let liquidity_round_down = get_liquidity_from_b(sqrt_price_0, sqrt_price_1, 1000, false);
+        let liquidity_round_up = get_liquidity_from_b(sqrt_price_0, sqrt_price_1, 1000, true);
+        assert!(liquidity_round_up >= liquidity_round_down, 5);
+    }
+
+    #[test]
+    fun test_get_delta_a_edge_cases() {
+        // Test with zero liquidity
+        assert!(get_delta_a(4u128 << 64, 2u128 << 64, 0, true) == 0, 0);
+        assert!(get_delta_a(4u128 << 64, 2u128 << 64, 0, false) == 0, 1);
+        
+        // Test with zero price difference
+        assert!(get_delta_a(4u128 << 64, 4u128 << 64, 1000, true) == 0, 2);
+        assert!(get_delta_a(4u128 << 64, 4u128 << 64, 1000, false) == 0, 3);
+        
+        // Test with very small values
+        assert!(get_delta_a(2u128 << 64, 1u128 << 64, 1, true) == 1, 4);
+        assert!(get_delta_a(2u128 << 64, 1u128 << 64, 1, false) == 0, 5);
+        
+        // Test rounding behavior
+        let delta_round_down = get_delta_a(10u128 << 64, 5u128 << 64, 3, false);
+        let delta_round_up = get_delta_a(10u128 << 64, 5u128 << 64, 3, true);
+        assert!(delta_round_up >= delta_round_down, 6);
+    }
+
+    #[test]
+    fun test_get_delta_b_edge_cases() {
+        // Test with zero liquidity
+        assert!(get_delta_b(4u128 << 64, 2u128 << 64, 0, true) == 0, 0);
+        assert!(get_delta_b(4u128 << 64, 2u128 << 64, 0, false) == 0, 1);
+        
+        // Test with zero price difference
+        assert!(get_delta_b(4u128 << 64, 4u128 << 64, 1000, true) == 0, 2);
+        assert!(get_delta_b(4u128 << 64, 4u128 << 64, 1000, false) == 0, 3);
+        
+        // Test rounding behavior with odd numbers
+        let delta_round_down = get_delta_b(3u128 << 64, 1u128 << 64, 1, false);
+        let delta_round_up = get_delta_b(3u128 << 64, 1u128 << 64, 1, true);
+        assert!(delta_round_up >= delta_round_down, 4);
+        
+        // Test with maximum u64 liquidity
+        let max_liquidity = 18446744073709551615u128;
+        let delta = get_delta_b(2u128 << 64, 1u128 << 64, max_liquidity, false);
+        assert!(delta > 0, 5);
+    }
+
+    #[test]
+    fun test_get_next_sqrt_price_a_up_edge_cases() {
+        let sqrt_price = 10u128 << 64;
+        let liquidity = 1000u128 << 64; // Use larger liquidity to avoid underflow
+        
+        // Test with zero amount
+        let result = get_next_sqrt_price_a_up(sqrt_price, liquidity, 0, true);
+        assert!(result == sqrt_price, 0);
+        
+        let result = get_next_sqrt_price_a_up(sqrt_price, liquidity, 0, false);
+        assert!(result == sqrt_price, 1);
+        
+        // Test by_amount_input vs by_amount_output differences with small amount
+        let amount = 100u64;
+        let result_input = get_next_sqrt_price_a_up(sqrt_price, liquidity, amount, true);
+        let result_output = get_next_sqrt_price_a_up(sqrt_price, liquidity, amount, false);
+        assert!(result_input != result_output, 2);
+    }
+
+    #[test]
+    fun test_get_next_sqrt_price_b_down_edge_cases() {
+        let sqrt_price = 10u128 << 64;
+        let liquidity = 1000u128;
+        let amount = 100u64;
+        
+        // Test by_amount_input vs by_amount_output
+        let result_input = get_next_sqrt_price_b_down(sqrt_price, liquidity, amount, true);
+        let result_output = get_next_sqrt_price_b_down(sqrt_price, liquidity, amount, false);
+        assert!(result_input > sqrt_price, 0); // Should increase price when input
+        assert!(result_output < sqrt_price, 1); // Should decrease price when output
+        
+        // Test with very small amount
+        let result_small = get_next_sqrt_price_b_down(sqrt_price, liquidity, 1, true);
+        assert!(result_small > sqrt_price, 2);
+    }
+
+    #[test]
+    fun test_get_next_sqrt_price_a_up_large_values() {
+        // Test with large but safe values
+        let sqrt_price = 100u128 << 64;
+        let liquidity = 1000000u128 << 64; // Much larger liquidity
+        let amount = 1000u64; // Smaller amount
+        
+        let result_input = get_next_sqrt_price_a_up(sqrt_price, liquidity, amount, true);
+        let result_output = get_next_sqrt_price_a_up(sqrt_price, liquidity, amount, false);
+        
+        // Both should be valid and different
+        assert!(result_input > 0, 0);
+        assert!(result_output > 0, 1);
+        assert!(result_input != result_output, 2);
+    }
+
+    #[test]
+    fun test_get_next_sqrt_price_boundary_checks() {
+        // Test that functions properly handle boundary conditions
+        let min_sqrt_price = tick_math::min_sqrt_price();
+        let max_sqrt_price = tick_math::max_sqrt_price();
+        
+        // Test with values near boundaries
+        let result1 = get_next_sqrt_price_b_down(min_sqrt_price + 1000, 1000000u128, 1, true);
+        assert!(result1 > min_sqrt_price, 0);
+        
+        let result2 = get_next_sqrt_price_b_down(max_sqrt_price - 1000, 1000000u128, 1, false);
+        assert!(result2 < max_sqrt_price, 1);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 2, location = bluefin_spot::clmm_math)]
+    fun test_get_delta_a_multiplication_overflow() {
+        // Use values that will cause multiplication overflow
+        let sqrt_price_0 = 340282366920938463463374607431768211455u128; // Max u128
+        let sqrt_price_1 = 1u128;
+        let liquidity = 340282366920938463463374607431768211455u128; // Max u128
+        
+        get_delta_a(sqrt_price_0, sqrt_price_1, liquidity, true);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 2, location = bluefin_spot::clmm_math)]
+    fun test_get_next_sqrt_price_a_up_multiplication_overflow() {
+        // Use values that will cause multiplication overflow
+        let sqrt_price = 340282366920938463463374607431768211455u128; // Max u128
+        let liquidity = 340282366920938463463374607431768211455u128; // Max u128
+        let amount = 1000u64;
+        
+        get_next_sqrt_price_a_up(sqrt_price, liquidity, amount, true);
+    }
+
+    #[test]
+    fun test_get_next_sqrt_price_from_input() {
+        let sqrt_price = 10u128 << 64;
+        let liquidity = 1000u128;
+        let amount = 100u64;
+        
+        // Test a_to_b = true
+        let result_a2b = get_next_sqrt_price_from_input(sqrt_price, liquidity, amount, true);
+        let expected_a2b = get_next_sqrt_price_a_up(sqrt_price, liquidity, amount, true);
+        assert!(result_a2b == expected_a2b, 0);
+        
+        // Test a_to_b = false
+        let result_b2a = get_next_sqrt_price_from_input(sqrt_price, liquidity, amount, false);
+        let expected_b2a = get_next_sqrt_price_b_down(sqrt_price, liquidity, amount, true);
+        assert!(result_b2a == expected_b2a, 1);
+    }
+
+    #[test]
+    fun test_get_next_sqrt_price_from_output() {
+        let sqrt_price = 10u128 << 64;
+        let liquidity = 1000u128 << 64; // Use larger liquidity
+        let amount = 10u64; // Use smaller amount
+        
+        // Test a_to_b = true
+        let result_a2b = get_next_sqrt_price_from_output(sqrt_price, liquidity, amount, true);
+        let expected_a2b = get_next_sqrt_price_b_down(sqrt_price, liquidity, amount, false);
+        assert!(result_a2b == expected_a2b, 0);
+        
+        // Test a_to_b = false
+        let result_b2a = get_next_sqrt_price_from_output(sqrt_price, liquidity, amount, false);
+        let expected_b2a = get_next_sqrt_price_a_up(sqrt_price, liquidity, amount, false);
+        assert!(result_b2a == expected_b2a, 1);
+    }
+
+    #[test]
+    fun test_get_delta_up_from_input_edge_cases() {
+        let current_sqrt_price = 10u128 << 64;
+        let target_sqrt_price = 5u128 << 64;
+        let liquidity = 1000u128;
+        
+        // Test with zero liquidity
+        let result = get_delta_up_from_input(current_sqrt_price, target_sqrt_price, 0, true);
+        assert!(result == 0, 0);
+        
+        // Test with same prices
+        let result = get_delta_up_from_input(current_sqrt_price, current_sqrt_price, liquidity, true);
+        assert!(result == 0, 1);
+        
+        // Test a_to_b vs b_to_a
+        let result_a2b = get_delta_up_from_input(current_sqrt_price, target_sqrt_price, liquidity, true);
+        let result_b2a = get_delta_up_from_input(current_sqrt_price, target_sqrt_price, liquidity, false);
+        assert!(result_a2b != result_b2a, 2);
+    }
+
+    #[test]
+    fun test_get_delta_down_from_output_edge_cases() {
+        let current_sqrt_price = 10u128 << 64;
+        let target_sqrt_price = 5u128 << 64;
+        let liquidity = 1000u128;
+        
+        // Test with zero liquidity
+        let result = get_delta_down_from_output(current_sqrt_price, target_sqrt_price, 0, true);
+        assert!(result == 0, 0);
+        
+        // Test with same prices
+        let result = get_delta_down_from_output(current_sqrt_price, current_sqrt_price, liquidity, true);
+        assert!(result == 0, 1);
+        
+        // Test a_to_b vs b_to_a
+        let result_a2b = get_delta_down_from_output(current_sqrt_price, target_sqrt_price, liquidity, true);
+        let result_b2a = get_delta_down_from_output(current_sqrt_price, target_sqrt_price, liquidity, false);
+        assert!(result_a2b != result_b2a, 2);
+    }
+
+    #[test]
+    fun test_compute_swap_step_edge_cases() {
+        let current_sqrt_price = 10u128 << 64;
+        let target_sqrt_price = 5u128 << 64;
+        let amount = 1000u64;
+        let fee_rate = 3000u64; // 0.3%
+        
+        // Test with zero liquidity
+        let (amount_in, amount_out, next_sqrt_price, fee_amount) = compute_swap_step(
+            current_sqrt_price,
+            target_sqrt_price,
+            0, // zero liquidity
+            amount,
+            fee_rate,
+            true,
+            true
+        );
+        assert!(amount_in == 0, 0);
+        assert!(amount_out == 0, 1);
+        assert!(next_sqrt_price == target_sqrt_price, 2);
+        assert!(fee_amount == 0, 3);
+        
+        // Test a2b vs b2a direction
+        let (amount_in_a2b, _, _, _) = compute_swap_step(
+            current_sqrt_price,
+            target_sqrt_price,
+            1000u128,
+            amount,
+            fee_rate,
+            true, // a2b
+            true
+        );
+        
+        let (amount_in_b2a, _, _, _) = compute_swap_step(
+            target_sqrt_price,
+            current_sqrt_price,
+            1000u128,
+            amount,
+            fee_rate,
+            false, // b2a
+            true
+        );
+        
+        assert!(amount_in_a2b > 0, 4);
+        assert!(amount_in_b2a > 0, 5);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 4, location = bluefin_spot::clmm_math)]
+    fun test_compute_swap_step_invalid_sqrt_price_a2b() {
+        let current_sqrt_price = 5u128 << 64;
+        let target_sqrt_price = 10u128 << 64; // Target higher than current for a2b
+        let liquidity = 1000u128;
+        let amount = 1000u64;
+        let fee_rate = 3000u64;
+        
+        // This should fail because for a2b, current should be >= target
+        compute_swap_step(
+            current_sqrt_price,
+            target_sqrt_price,
+            liquidity,
+            amount,
+            fee_rate,
+            true, // a2b
+            true
+        );
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 4, location = bluefin_spot::clmm_math)]
+    fun test_compute_swap_step_invalid_sqrt_price_b2a() {
+        let current_sqrt_price = 10u128 << 64;
+        let target_sqrt_price = 5u128 << 64; // Target lower than current for b2a
+        let liquidity = 1000u128;
+        let amount = 1000u64;
+        let fee_rate = 3000u64;
+        
+        // This should fail because for b2a, current should be < target
+        compute_swap_step(
+            current_sqrt_price,
+            target_sqrt_price,
+            liquidity,
+            amount,
+            fee_rate,
+            false, // b2a
+            true
+        );
+    }
+
+    #[test]
+    fun test_get_amount_by_liquidity_zero_liquidity() {
+        use integer_mate::i32;
+        
+        let (amount_a, amount_b) = get_amount_by_liquidity(
+            i32::neg_from(100),
+            i32::from(100),
+            i32::from(0),
+            tick_math::get_sqrt_price_at_tick(i32::from(0)),
+            0, // zero liquidity
+            true
+        );
+        assert!(amount_a == 0, 0);
+        assert!(amount_b == 0, 1);
+    }
+
+    #[test]
+    fun test_get_amount_by_liquidity_all_positions() {
+        use integer_mate::i32;
+        
+        let tick_lower = i32::neg_from(100);
+        let tick_upper = i32::from(100);
+        let liquidity = 1000000u128;
+        
+        // Test current tick below range (only token A)
+        let current_tick = i32::neg_from(200);
+        let current_sqrt_price = tick_math::get_sqrt_price_at_tick(current_tick);
+        let (amount_a, amount_b) = get_amount_by_liquidity(
+            tick_lower,
+            tick_upper,
+            current_tick,
+            current_sqrt_price,
+            liquidity,
+            true
+        );
+        assert!(amount_a > 0, 0);
+        assert!(amount_b == 0, 1);
+        
+        // Test current tick in range (both tokens)
+        let current_tick = i32::from(0);
+        let current_sqrt_price = tick_math::get_sqrt_price_at_tick(current_tick);
+        let (amount_a, amount_b) = get_amount_by_liquidity(
+            tick_lower,
+            tick_upper,
+            current_tick,
+            current_sqrt_price,
+            liquidity,
+            true
+        );
+        assert!(amount_a > 0, 2);
+        assert!(amount_b > 0, 3);
+        
+        // Test current tick above range (only token B)
+        let current_tick = i32::from(200);
+        let current_sqrt_price = tick_math::get_sqrt_price_at_tick(current_tick);
+        let (amount_a, amount_b) = get_amount_by_liquidity(
+            tick_lower,
+            tick_upper,
+            current_tick,
+            current_sqrt_price,
+            liquidity,
+            true
+        );
+        assert!(amount_a == 0, 4);
+        assert!(amount_b > 0, 5);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 3018, location = bluefin_spot::clmm_math)]
+    fun test_get_liquidity_by_amount_invalid_fixed_a_above_range() {
+        use integer_mate::i32;
+        
+        let lower_index = i32::neg_from(100);
+        let upper_index = i32::from(100);
+        let current_tick_index = i32::from(200); // Above range
+        let current_sqrt_price = tick_math::get_sqrt_price_at_tick(current_tick_index);
+        
+        // Should fail when trying to fix token A but current tick is above range
+        get_liquidity_by_amount(
+            lower_index,
+            upper_index,
+            current_tick_index,
+            current_sqrt_price,
+            1000,
+            true // is_fixed_a
+        );
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 3018, location = bluefin_spot::clmm_math)]
+    fun test_get_liquidity_by_amount_invalid_fixed_b_below_range() {
+        use integer_mate::i32;
+        
+        let lower_index = i32::neg_from(100);
+        let upper_index = i32::from(100);
+        let current_tick_index = i32::neg_from(200); // Below range
+        let current_sqrt_price = tick_math::get_sqrt_price_at_tick(current_tick_index);
+        
+        // Should fail when trying to fix token B but current tick is below range
+        get_liquidity_by_amount(
+            lower_index,
+            upper_index,
+            current_tick_index,
+            current_sqrt_price,
+            1000,
+            false // is_fixed_a (so fixed B)
+        );
+    }
+
+    #[test]
+    fun test_get_liquidity_by_amount_all_scenarios() {
+        use integer_mate::i32;
+        
+        let lower_index = i32::neg_from(100);
+        let upper_index = i32::from(100);
+        let amount = 1000000u64;
+        
+        // Test fixed A, current below range
+        let current_tick_index = i32::neg_from(200);
+        let current_sqrt_price = tick_math::get_sqrt_price_at_tick(current_tick_index);
+        let (liquidity, amount_a, amount_b) = get_liquidity_by_amount(
+            lower_index,
+            upper_index,
+            current_tick_index,
+            current_sqrt_price,
+            amount,
+            true // is_fixed_a
+        );
+        assert!(liquidity > 0, 0);
+        assert!(amount_a == amount, 1);
+        assert!(amount_b == 0, 2);
+        
+        // Test fixed A, current in range
+        let current_tick_index = i32::from(0);
+        let current_sqrt_price = tick_math::get_sqrt_price_at_tick(current_tick_index);
+        let (liquidity, amount_a, amount_b) = get_liquidity_by_amount(
+            lower_index,
+            upper_index,
+            current_tick_index,
+            current_sqrt_price,
+            amount,
+            true // is_fixed_a
+        );
+        assert!(liquidity > 0, 3);
+        assert!(amount_a == amount, 4);
+        assert!(amount_b > 0, 5);
+        
+        // Test fixed B, current above range
+        let current_tick_index = i32::from(200);
+        let current_sqrt_price = tick_math::get_sqrt_price_at_tick(current_tick_index);
+        let (liquidity, amount_a, amount_b) = get_liquidity_by_amount(
+            lower_index,
+            upper_index,
+            current_tick_index,
+            current_sqrt_price,
+            amount,
+            false // is_fixed_a (so fixed B)
+        );
+        assert!(liquidity > 0, 6);
+        assert!(amount_a == 0, 7);
+        assert!(amount_b == amount, 8);
+        
+        // Test fixed B, current in range
+        let current_tick_index = i32::from(0);
+        let current_sqrt_price = tick_math::get_sqrt_price_at_tick(current_tick_index);
+        let (liquidity, amount_a, amount_b) = get_liquidity_by_amount(
+            lower_index,
+            upper_index,
+            current_tick_index,
+            current_sqrt_price,
+            amount,
+            false // is_fixed_a (so fixed B)
+        );
+        assert!(liquidity > 0, 9);
+        assert!(amount_a > 0, 10);
+        assert!(amount_b == amount, 11);
+    }
+
+    #[test]
+    fun test_compute_swap_step_comprehensive() {
+        let current_sqrt_price = 10u128 << 64;
+        let target_sqrt_price = 8u128 << 64;
+        let liquidity = 1000000u128;
+        let amount = 10000u64;
+        let fee_rate = 3000u64; // 0.3%
+        
+        // Test by_amount_in = true, a2b = true
+        let (amount_in, amount_out, next_sqrt_price, fee_amount) = compute_swap_step(
+            current_sqrt_price,
+            target_sqrt_price,
+            liquidity,
+            amount,
+            fee_rate,
+            true, // a2b
+            true  // by_amount_in
+        );
+        assert!(amount_in > 0, 0);
+        assert!(amount_out > 0, 1);
+        assert!(next_sqrt_price <= current_sqrt_price, 2);
+        assert!(fee_amount > 0, 3);
+        
+        // Test by_amount_in = false, a2b = true
+        let (amount_in2, amount_out2, next_sqrt_price2, fee_amount2) = compute_swap_step(
+            current_sqrt_price,
+            target_sqrt_price,
+            liquidity,
+            amount,
+            fee_rate,
+            true,  // a2b
+            false  // by_amount_in (by_amount_out)
+        );
+        assert!(amount_in2 > 0, 4);
+        assert!(amount_out2 > 0, 5);
+        assert!(next_sqrt_price2 <= current_sqrt_price, 6);
+        assert!(fee_amount2 > 0, 7);
+        
+        // Results should be different for different input modes
+        assert!(amount_in != amount_in2 || amount_out != amount_out2, 8);
+    }
+
+    #[test]
+    fun test_rounding_consistency() {
+        use integer_mate::i32;
+        
+        let sqrt_price_0 = tick_math::get_sqrt_price_at_tick(i32::from(0));
+        let sqrt_price_1 = tick_math::get_sqrt_price_at_tick(i32::from(100));
+        let amount = 1000000u64;
+        let liquidity = 500000u128;
+        
+        // Test that round_up always gives >= round_down results
+        let liquidity_a_down = get_liquidity_from_a(sqrt_price_0, sqrt_price_1, amount, false);
+        let liquidity_a_up = get_liquidity_from_a(sqrt_price_0, sqrt_price_1, amount, true);
+        assert!(liquidity_a_up >= liquidity_a_down, 0);
+        
+        let liquidity_b_down = get_liquidity_from_b(sqrt_price_0, sqrt_price_1, amount, false);
+        let liquidity_b_up = get_liquidity_from_b(sqrt_price_0, sqrt_price_1, amount, true);
+        assert!(liquidity_b_up >= liquidity_b_down, 1);
+        
+        let delta_a_down = get_delta_a(sqrt_price_0, sqrt_price_1, liquidity, false);
+        let delta_a_up = get_delta_a(sqrt_price_0, sqrt_price_1, liquidity, true);
+        assert!(delta_a_up >= delta_a_down, 2);
+        
+        let delta_b_down = get_delta_b(sqrt_price_0, sqrt_price_1, liquidity, false);
+        let delta_b_up = get_delta_b(sqrt_price_0, sqrt_price_1, liquidity, true);
+        assert!(delta_b_up >= delta_b_down, 3);
+    }
 }

@@ -21,6 +21,8 @@ module bluefin_spot::events {
     friend bluefin_spot::admin;
     friend bluefin_spot::tick;
     friend bluefin_spot::config;
+    #[test_only]
+    friend bluefin_spot::test_event;
 
     //===========================================================//
     //                           Structs                         //

@@ -26,7 +26,7 @@ module bluefin_spot::gateway {
     //===========================================================//
 
     /// Creates a pool
-    #[allow(unused_type_parameter)]
+    #[allow(unused_type_parameter, lint(public_entry))]
     public entry fun create_pool<CoinTypeA, CoinTypeB>(
         _: &Clock, 
         _: vector<u8>, 
@@ -46,6 +46,7 @@ module bluefin_spot::gateway {
         abort errors::depricated()
     }
 
+     #[allow(lint(public_entry))]
     public entry fun create_pool_v2<CoinTypeA, CoinTypeB, CoinTypeFee>(
         clock: &Clock, 
         protocol_config: &mut GlobalConfig, 
@@ -84,6 +85,7 @@ module bluefin_spot::gateway {
     }
     
     //  Provides liquidity to the pool
+    #[allow(lint(public_entry))]
     public entry fun provide_liquidity<CoinTypeA, CoinTypeB>(
         clock: &Clock,
         protocol_config: &GlobalConfig, 
@@ -121,6 +123,7 @@ module bluefin_spot::gateway {
     }
 
     //  Provides liquidity to the pool
+    #[allow(lint(public_entry))]
     public entry fun provide_liquidity_with_fixed_amount<CoinTypeA, CoinTypeB>(
         clock: &Clock,
         protocol_config: &GlobalConfig, 
@@ -161,6 +164,7 @@ module bluefin_spot::gateway {
 
 
     //  Remove liquidity from the pool
+    #[allow(lint(public_entry))]
     public entry fun remove_liquidity<CoinTypeA, CoinTypeB>(
         clock: &Clock,
         protocol_config: &GlobalConfig, 
@@ -189,6 +193,7 @@ module bluefin_spot::gateway {
     }
 
     //  Closes the position and removes any residual liquidity and transfers to the provided address
+    #[allow(lint(public_entry))]
     public entry fun close_position<CoinTypeA, CoinTypeB>(
         clock: &Clock,
         protocol_config: &GlobalConfig, 
@@ -236,6 +241,7 @@ module bluefin_spot::gateway {
 
 
     /// Performs swap on the pool
+    #[allow(lint(public_entry))]
     public entry fun swap_assets<CoinTypeA, CoinTypeB>(
         clock: &Clock,
         protocol_config: &GlobalConfig, 
@@ -268,6 +274,7 @@ module bluefin_spot::gateway {
     }
 
     /// Sample flash swap call
+    #[allow(lint(public_entry))]
     public entry fun flash_swap<CoinTypeA,CoinTypeB>(
         clock: &Clock,
         protocol_config: &GlobalConfig, 
@@ -329,6 +336,7 @@ module bluefin_spot::gateway {
     }
 
     /// Allows user to collect the fees accrued on their position
+    #[allow(lint(public_entry))]
     public entry fun collect_fee<CoinTypeA,CoinTypeB>(
         clock: &Clock,
         protocol_config: &GlobalConfig, 
@@ -347,8 +355,9 @@ module bluefin_spot::gateway {
 
      }
 
-     /// Allows user to collect the rewards accruted on their position
-     /// Reverts if the reward accrured amount is zero
+     /// Allows user to collect the rewards accrued on their position
+     /// Reverts if the reward accrued amount is zero
+     #[allow(lint(public_entry))]
      public entry fun collect_reward<CoinTypeA, CoinTypeB, RewardCoinType>(
         clock: &Clock,
         protocol_config: &GlobalConfig, 
@@ -372,6 +381,7 @@ module bluefin_spot::gateway {
     //===========================================================//
 
     /// Function to perform swap in a route
+    #[allow(lint(public_entry))]
     public fun route_swap<CoinTypeA, CoinTypeB>(
         clock: &Clock,
         protocol_config: &GlobalConfig, 
@@ -414,10 +424,8 @@ module bluefin_spot::gateway {
         // TODO update error code
         if (by_amount_in) {
             assert!(out_amount >= amount_limit, errors::slippage_exceeds());
-            assert!(in_amount == amount, 1);
         } else {
             assert!(in_amount <= amount_limit, errors::slippage_exceeds());
-            assert!(out_amount == amount, 1);
         };
 
         let (pay_coin_a, pay_coin_b) = if (a2b) {

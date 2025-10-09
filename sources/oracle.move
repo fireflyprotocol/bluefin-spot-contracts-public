@@ -25,6 +25,8 @@ module bluefin_spot::oracle {
     use bluefin_spot::utils;
 
     friend bluefin_spot::pool;
+    #[test_only]
+    friend bluefin_spot::test_oracle;
 
     //===========================================================//
     //                           Structs                         //
@@ -249,6 +251,43 @@ module bluefin_spot::oracle {
     }
 
     //===========================================================//
+    //                      Getter Functions                    //
+    //===========================================================//
+
+    // ObservationManager getters
+    public fun observation_index(manager: &ObservationManager): u64 {
+        manager.observation_index
+    }
+
+    public fun observation_cardinality(manager: &ObservationManager): u64 {
+        manager.observation_cardinality
+    }
+
+    public fun observation_cardinality_next(manager: &ObservationManager): u64 {
+        manager.observation_cardinality_next
+    }
+
+    public fun observations_length(manager: &ObservationManager): u64 {
+        vector::length(&manager.observations)
+    }
+
+    // Observation getters
+    public fun timestamp(observation: &Observation): u64 {
+        observation.timestamp
+    }
+
+    public fun tick_cumulative(observation: &Observation): I64 {
+        observation.tick_cumulative
+    }
+
+    public fun seconds_per_liquidity_cumulative(observation: &Observation): u256 {
+        observation.seconds_per_liquidity_cumulative
+    }
+
+    public fun initialized(observation: &Observation): bool {
+        observation.initialized
+    }
+    //===========================================================//
     //                    Internal Functions                     //
     //===========================================================//
 
@@ -260,6 +299,23 @@ module bluefin_spot::oracle {
         } else {
             default_observation()
         }
-    }    
+    }
+
+    // Test-only constructor for Observation
+    #[test_only]
+    public fun create_observation(timestamp: u64, tick_cumulative: I64, seconds_per_liquidity_cumulative: u256, initialized: bool): Observation {
+        Observation {
+            timestamp,
+            tick_cumulative,
+            seconds_per_liquidity_cumulative,
+            initialized,
+        }
+    }
+
+    #[test_only]
+    public fun get_observation_for_testing(manager: &ObservationManager, index: u64) : Observation {
+        get_observation(manager, index)
+    }
+    
 
 }

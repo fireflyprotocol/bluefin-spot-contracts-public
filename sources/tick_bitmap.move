@@ -19,6 +19,9 @@ module bluefin_spot::tick_bitmap {
     
     // friends
     friend bluefin_spot::pool;
+
+    #[test_only]
+    friend bluefin_spot::test_tick_bitmap;
     
     public fun cast_to_u8(index: I32) : u8 {
         let lib_index = i32H::mate_to_lib(index);
@@ -47,9 +50,7 @@ module bluefin_spot::tick_bitmap {
         if (i32::is_neg(lib_tick) && (i32::abs_u32(lib_tick) % tick_spacing) != 0) {
             compressed = i32::sub(compressed, i32::from(1));
         };
- 
-
-        
+         
 
        if (a2b) {
             let (word, bit) = position(compressed);

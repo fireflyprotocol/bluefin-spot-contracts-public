@@ -29,6 +29,8 @@ module bluefin_spot::position {
 
     // friend Modules
     friend bluefin_spot::pool;
+    #[test_only]
+    friend bluefin_spot::test_position;
 
     //===========================================================//
     //                          Structs                          //
@@ -341,6 +343,12 @@ module bluefin_spot::position {
     #[test_only]
     public fun close(position: Position){
         let (_, _, _, _) = del(position);
+    }
+
+    #[test_only]
+    public fun test_init(ctx: &mut TxContext) {
+        let otw = POSITION { dummy_field: false };
+        init(otw, ctx);
     }
 
 }

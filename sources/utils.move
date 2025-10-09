@@ -27,6 +27,7 @@ module bluefin_spot::utils {
     use integer_library::math_u256;
     
     /// Returns the type of the provided generic as string
+    #[allow(deprecated_usage)]
     public fun get_type_string<T>(): String {        
         string::utf8(ascii::into_bytes(type_name::into_string(type_name::get<T>())))
     }
