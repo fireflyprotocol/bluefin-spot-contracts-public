@@ -1,9 +1,4 @@
-<div align="center">
-  <img height="100x" src="https://bluefin.io/images/bluefin-logo.svg" />
-
-  <h1 style="margin-top:20px;">Bluefin Spot</h1>
-
-</div>
+# Bluefin Spot
 
 Sui smart contracts for bluefin spot exchange
 
