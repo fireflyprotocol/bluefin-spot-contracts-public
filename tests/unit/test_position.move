@@ -1,18 +1,7 @@
-/*
-  Copyright (c) 2025 Bluefin Labs Inc.
-  Proprietary Smart Contract License – All Rights Reserved.
-
-  This source code is provided for transparency and verification only.
-  Use, modification, reproduction, or redeployment of this code 
-  requires prior written permission from the Bluefin Labs Inc.
-*/
-
 #[test_only]
 module bluefin_spot::test_position {
-    use sui::object::{Self, ID};
     use sui::test_scenario::{Self, Scenario};
     use std::string::{Self, String};
-    use std::vector;
     use bluefin_spot::position::{Self, Position};
     use integer_mate::i32::{Self as MateI32};
     use integer_mate::i128::{Self as MateI128};
@@ -58,8 +47,8 @@ module bluefin_spot::test_position {
     }
 
     fun create_test_reward_growths(count: u64): vector<u128> {
-        let rewards = vector::empty<u128>();
-        let i = 0;
+        let mut rewards = vector::empty<u128>();
+        let mut i = 0;
         while (i < count) {
             vector::push_back(&mut rewards, (i as u128) * 1000 + 500);
             i = i + 1;
@@ -73,7 +62,7 @@ module bluefin_spot::test_position {
 
     #[test]
     fun test_module_init() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let ctx = test_scenario::ctx(&mut scenario);
         
         // Test the module initialization
@@ -88,7 +77,7 @@ module bluefin_spot::test_position {
 
     #[test]
     fun test_new_position_basic() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let position = create_test_position(&mut scenario);
         
         // Verify initial values
@@ -108,7 +97,7 @@ module bluefin_spot::test_position {
 
     #[test]
     fun test_new_position_with_different_ticks() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let ctx = test_scenario::ctx(&mut scenario);
         let pool_id = create_dummy_pool_id();
         let (pool_name, image_url, coin_type_a, coin_type_b) = create_test_strings();
@@ -127,7 +116,7 @@ module bluefin_spot::test_position {
             MateI32::from(100u32)       // Zero to positive
         ];
         
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&lower_ticks)) {
             let lower_tick = *std::vector::borrow(&lower_ticks, i);
             let upper_tick = *std::vector::borrow(&upper_ticks, i);
@@ -149,7 +138,7 @@ module bluefin_spot::test_position {
 
     #[test]
     fun test_new_position_with_different_fee_rates() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let ctx = test_scenario::ctx(&mut scenario);
         let pool_id = create_dummy_pool_id();
         let (pool_name, image_url, coin_type_a, coin_type_b) = create_test_strings();
@@ -159,7 +148,7 @@ module bluefin_spot::test_position {
         // Test different fee rates
         let fee_rates = vector[500u64, 3000u64, 10000u64]; // 0.05%, 0.3%, 1%
         
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&fee_rates)) {
             let fee_rate = *std::vector::borrow(&fee_rates, i);
             
@@ -185,7 +174,7 @@ module bluefin_spot::test_position {
 
     #[test]
     fun test_del_position() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let position = create_test_position(&mut scenario);
         
         let original_pool_id = position::pool_id(&position);
@@ -211,8 +200,8 @@ module bluefin_spot::test_position {
 
     #[test]
     fun test_set_fee_amounts() {
-        let scenario = test_scenario::begin(ADMIN);
-        let position = create_test_position(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut position = create_test_position(&mut scenario);
         
         // Initially fees should be zero
         let (initial_fee_a, initial_fee_b) = position::get_accrued_fee(&position);
@@ -232,8 +221,8 @@ module bluefin_spot::test_position {
 
     #[test]
     fun test_set_fee_amounts_multiple_times() {
-        let scenario = test_scenario::begin(ADMIN);
-        let position = create_test_position(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut position = create_test_position(&mut scenario);
         
         // Set fees multiple times
         position::set_fee_amounts(&mut position, 500u64, 750u64);
@@ -262,8 +251,8 @@ module bluefin_spot::test_position {
 
     #[test]
     fun test_add_reward_info() {
-        let scenario = test_scenario::begin(ADMIN);
-        let position = create_test_position(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut position = create_test_position(&mut scenario);
         
         // Initially no reward infos
         assert!(position::reward_infos_length(&position) == 0, 0);
@@ -285,8 +274,8 @@ module bluefin_spot::test_position {
 
     #[test]
     fun test_coins_owed_reward_out_of_bounds() {
-        let scenario = test_scenario::begin(ADMIN);
-        let position = create_test_position(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut position = create_test_position(&mut scenario);
         
         // Add one reward info
         position::add_reward_info(&mut position);
@@ -305,8 +294,8 @@ module bluefin_spot::test_position {
 
     #[test]
     fun test_decrease_reward_amount() {
-        let scenario = test_scenario::begin(ADMIN);
-        let position = create_test_position(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut position = create_test_position(&mut scenario);
         
         // Add reward info and set initial amount through update
         position::add_reward_info(&mut position);
@@ -337,8 +326,8 @@ module bluefin_spot::test_position {
 
     #[test]
     fun test_update_add_liquidity() {
-        let scenario = test_scenario::begin(ADMIN);
-        let position = create_test_position(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut position = create_test_position(&mut scenario);
         
         // Initially no liquidity
         assert!(position::liquidity(&position) == 0, 0);
@@ -360,8 +349,8 @@ module bluefin_spot::test_position {
 
     #[test]
     fun test_update_remove_liquidity() {
-        let scenario = test_scenario::begin(ADMIN);
-        let position = create_test_position(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut position = create_test_position(&mut scenario);
         
         // First add liquidity
         let add_delta = MateI128::from(2000u128);
@@ -384,8 +373,8 @@ module bluefin_spot::test_position {
 
     #[test]
     fun test_update_remove_all_liquidity() {
-        let scenario = test_scenario::begin(ADMIN);
-        let position = create_test_position(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut position = create_test_position(&mut scenario);
         
         // Add liquidity
         let add_delta = MateI128::from(1500u128);
@@ -407,8 +396,8 @@ module bluefin_spot::test_position {
 
     #[test]
     fun test_update_zero_liquidity_delta() {
-        let scenario = test_scenario::begin(ADMIN);
-        let position = create_test_position(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut position = create_test_position(&mut scenario);
         
         // First add some liquidity
         let add_delta = MateI128::from(1000u128);
@@ -431,8 +420,8 @@ module bluefin_spot::test_position {
     #[test]
     #[expected_failure(abort_code = 1015, location = bluefin_spot::position)]
     fun test_update_zero_liquidity_delta_with_no_liquidity() {
-        let scenario = test_scenario::begin(ADMIN);
-        let position = create_test_position(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut position = create_test_position(&mut scenario);
         
         // Try to update with zero delta when position has no liquidity
         let zero_delta = MateI128::zero();
@@ -446,8 +435,8 @@ module bluefin_spot::test_position {
 
     #[test]
     fun test_update_fee_accumulation() {
-        let scenario = test_scenario::begin(ADMIN);
-        let position = create_test_position(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut position = create_test_position(&mut scenario);
         
         // Add liquidity
         let liquidity_delta = MateI128::from(1000u128);
@@ -473,8 +462,8 @@ module bluefin_spot::test_position {
 
     #[test]
     fun test_update_with_multiple_rewards() {
-        let scenario = test_scenario::begin(ADMIN);
-        let position = create_test_position(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut position = create_test_position(&mut scenario);
         
         // Add liquidity with multiple reward types
         let liquidity_delta = MateI128::from(1000u128);
@@ -500,7 +489,7 @@ module bluefin_spot::test_position {
 
     #[test]
     fun test_is_empty_new_position() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let position = create_test_position(&mut scenario);
         
         // New position should be empty
@@ -512,8 +501,8 @@ module bluefin_spot::test_position {
 
     #[test]
     fun test_is_empty_with_liquidity() {
-        let scenario = test_scenario::begin(ADMIN);
-        let position = create_test_position(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut position = create_test_position(&mut scenario);
         
         // Add liquidity
         let liquidity_delta = MateI128::from(1000u128);
@@ -530,8 +519,8 @@ module bluefin_spot::test_position {
 
     #[test]
     fun test_is_empty_with_rewards_only() {
-        let scenario = test_scenario::begin(ADMIN);
-        let position = create_test_position(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut position = create_test_position(&mut scenario);
         
         // Add and then remove liquidity to generate rewards
         let liquidity_delta = MateI128::from(1000u128);
@@ -562,7 +551,7 @@ module bluefin_spot::test_position {
 
     #[test]
     fun test_getter_functions() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let ctx = test_scenario::ctx(&mut scenario);
         let pool_id = create_dummy_pool_id();
         let (pool_name, image_url, coin_type_a, coin_type_b) = create_test_strings();
@@ -597,7 +586,7 @@ module bluefin_spot::test_position {
 
     #[test]
     fun test_extreme_tick_values() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let ctx = test_scenario::ctx(&mut scenario);
         let pool_id = create_dummy_pool_id();
         let (pool_name, image_url, coin_type_a, coin_type_b) = create_test_strings();
@@ -620,8 +609,8 @@ module bluefin_spot::test_position {
 
     #[test]
     fun test_large_liquidity_values() {
-        let scenario = test_scenario::begin(ADMIN);
-        let position = create_test_position(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut position = create_test_position(&mut scenario);
         
         // Test with large liquidity values
         let large_liquidity = MateI128::from(1000000000u128); // 1 billion
@@ -638,8 +627,8 @@ module bluefin_spot::test_position {
 
     #[test]
     fun test_empty_reward_growths() {
-        let scenario = test_scenario::begin(ADMIN);
-        let position = create_test_position(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut position = create_test_position(&mut scenario);
         
         // Update with empty reward growths vector
         let liquidity_delta = MateI128::from(1000u128);
@@ -660,8 +649,8 @@ module bluefin_spot::test_position {
 
     #[test]
     fun test_full_position_lifecycle() {
-        let scenario = test_scenario::begin(ADMIN);
-        let position = create_test_position(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut position = create_test_position(&mut scenario);
         
         // 1. Initially empty
         assert!(position::is_empty(&position) == true, 0);
@@ -709,15 +698,15 @@ module bluefin_spot::test_position {
 
     #[test]
     fun test_multiple_positions_interaction() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let ctx = test_scenario::ctx(&mut scenario);
         let pool_id = create_dummy_pool_id();
         let (pool_name, image_url, coin_type_a, coin_type_b) = create_test_strings();
         
         // Create multiple positions with different parameters
-        let positions = vector::empty<Position>();
+        let mut positions = vector::empty<Position>();
         
-        let i = 0u64;
+        let mut i = 0u64;
         while (i < 3) {
             let multiplier = ((i + 1) as u32);
             let lower_tick = MateI32::neg_from(multiplier * 100);

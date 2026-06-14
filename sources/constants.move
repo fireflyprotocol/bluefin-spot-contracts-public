@@ -110,6 +110,10 @@ module bluefin_spot::constants {
          string::utf8(b"pool_creation_fee")
     }
 
+    public fun emission_caps_dynamic_key(): String {
+         string::utf8(b"reward_emission_caps")
+    }
+
     public fun flash_swap_in_progress_key(): vector<u8> {
         b"flash_swap_in_progress"
     }

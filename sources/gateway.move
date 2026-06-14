@@ -8,7 +8,6 @@
 */
 
 module bluefin_spot::gateway {
-    use sui::tx_context::{Self, TxContext};
     use sui::coin::{Self, Coin};
     use sui::clock::{Clock};
     use sui::balance;
@@ -198,12 +197,12 @@ module bluefin_spot::gateway {
         clock: &Clock,
         protocol_config: &GlobalConfig, 
         pool: &mut Pool<CoinTypeA, CoinTypeB>, 
-        position: Position,
+        mut position: Position,
         transfer_coins_to: address,
         ctx: &mut TxContext) {
         
         let liquidity = position::liquidity(&position);
-        let (residual_a, residual_b) = if (liquidity > 0 ) {
+        let (mut residual_a, mut residual_b) = if (liquidity > 0 ) {
             let (_, _, balance_a, balance_b) = pool::remove_liquidity(
                 protocol_config,
                 pool,
@@ -279,8 +278,8 @@ module bluefin_spot::gateway {
         clock: &Clock,
         protocol_config: &GlobalConfig, 
         pool: &mut Pool<CoinTypeA, CoinTypeB>, 
-        coin_a: Coin<CoinTypeA>,
-        coin_b: Coin<CoinTypeB>,
+        mut coin_a: Coin<CoinTypeA>,
+        mut coin_b: Coin<CoinTypeB>,
         a2b: bool,
         by_amount_in: bool,
         amount: u64,
@@ -386,12 +385,12 @@ module bluefin_spot::gateway {
         clock: &Clock,
         protocol_config: &GlobalConfig, 
         pool: &mut Pool<CoinTypeA, CoinTypeB>, 
-        coin_a: Coin<CoinTypeA>,
-        coin_b: Coin<CoinTypeB>,
+        mut coin_a: Coin<CoinTypeA>,
+        mut coin_b: Coin<CoinTypeB>,
         a2b: bool,
         by_amount_in: bool,
         middle_step: bool,
-        amount: u64,
+        mut amount: u64,
         amount_limit: u64,
         sqrt_price_max_limit: u128,
         ctx: &mut TxContext

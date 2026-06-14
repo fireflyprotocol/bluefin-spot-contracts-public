@@ -1,13 +1,3 @@
-/*
-  Copyright (c) 2025 Bluefin Labs Inc.
-  Proprietary Smart Contract License – All Rights Reserved.
-
-  This source code is provided for transparency and verification only.
-  Use, modification, reproduction, or redeployment of this code 
-  requires prior written permission from the Bluefin Labs Inc.
-*/
-
-
 #[test_only]
 module bluefin_spot::test_tick_bitmap {
     use sui::table::{Self, Table};
@@ -34,7 +24,7 @@ module bluefin_spot::test_tick_bitmap {
     fun test_cast_to_u8_positive_values() {
         // Test positive values within range
         let positive_values = vector[0u32, 1u32, 50u32, 100u32, 200u32, 255u32];
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&positive_values)) {
             let value = *std::vector::borrow(&positive_values, i);
             let index = MateI32::from(value);
@@ -50,7 +40,7 @@ module bluefin_spot::test_tick_bitmap {
         let negative_values = vector[1u32, 50u32, 100u32, 200u32, 255u32];
         let expected_results = vector[255u8, 206u8, 156u8, 56u8, 1u8];
         
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&negative_values)) {
             let value = *std::vector::borrow(&negative_values, i);
             let expected = *std::vector::borrow(&expected_results, i);
@@ -81,7 +71,7 @@ module bluefin_spot::test_tick_bitmap {
         let is_negative = vector[false, false, true, true, false, true];
         let expected = vector[1u8, 254u8, 255u8, 254u8, 128u8, 128u8];
         
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&values)) {
             let value = *std::vector::borrow(&values, i);
             let negative = *std::vector::borrow(&is_negative, i);
@@ -136,7 +126,7 @@ module bluefin_spot::test_tick_bitmap {
 
     #[test]
     fun test_next_initialized_tick_empty_bitmap() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let bitmap = create_empty_bitmap(&mut scenario);
         
         // Search in empty bitmap - should return false for initialized
@@ -153,12 +143,12 @@ module bluefin_spot::test_tick_bitmap {
 
     #[test]
     fun test_next_initialized_tick_different_spacings() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let bitmap = create_empty_bitmap(&mut scenario);
         
         // Test with different tick spacings on empty bitmap
         let spacings = vector[1u32, 2u32, 5u32, 10u32, 60u32, 200u32];
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&spacings)) {
             let spacing = *std::vector::borrow(&spacings, i);
             let tick = MateI32::from(spacing * 5); // Ensure divisible by spacing
@@ -175,7 +165,7 @@ module bluefin_spot::test_tick_bitmap {
 
     #[test]
     fun test_next_initialized_tick_zero_tick() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let bitmap = create_empty_bitmap(&mut scenario);
         
         // Test with tick at zero
@@ -192,12 +182,12 @@ module bluefin_spot::test_tick_bitmap {
 
     #[test]
     fun test_next_initialized_tick_negative_ticks() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let bitmap = create_empty_bitmap(&mut scenario);
         
         // Test negative tick indices
         let negative_ticks = vector[1u32, 10u32, 50u32, 100u32, 255u32];
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&negative_ticks)) {
             let tick_value = *std::vector::borrow(&negative_ticks, i);
             let negative_tick = MateI32::neg_from(tick_value);
@@ -217,12 +207,12 @@ module bluefin_spot::test_tick_bitmap {
 
     #[test]
     fun test_next_initialized_tick_word_boundaries() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let bitmap = create_empty_bitmap(&mut scenario);
         
         // Test ticks at word boundaries (multiples of 256)
         let boundary_ticks = vector[255u32, 256u32, 512u32, 768u32];
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&boundary_ticks)) {
             let tick_value = *std::vector::borrow(&boundary_ticks, i);
             let tick = MateI32::from(tick_value);
@@ -239,12 +229,12 @@ module bluefin_spot::test_tick_bitmap {
 
     #[test]
     fun test_next_initialized_tick_large_spacing() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let bitmap = create_empty_bitmap(&mut scenario);
         
         // Test with large tick spacing
         let large_spacings = vector[100u32, 200u32, 500u32];
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&large_spacings)) {
             let spacing = *std::vector::borrow(&large_spacings, i);
             let tick = MateI32::from(spacing * 2); // Ensure divisible by spacing
@@ -264,12 +254,12 @@ module bluefin_spot::test_tick_bitmap {
 
     #[test]
     fun test_next_initialized_tick_direction_consistency() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let bitmap = create_empty_bitmap(&mut scenario);
         
         // Test that both directions return consistent results for empty bitmap
         let test_ticks = vector[0u32, 50u32, 100u32, 200u32, 255u32];
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&test_ticks)) {
             let tick_value = *std::vector::borrow(&test_ticks, i);
             let tick = MateI32::from(tick_value);
@@ -293,7 +283,7 @@ module bluefin_spot::test_tick_bitmap {
 
     #[test]
     fun test_next_initialized_tick_extreme_values() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let bitmap = create_empty_bitmap(&mut scenario);
         
         // Test with extreme but valid tick values
@@ -303,7 +293,7 @@ module bluefin_spot::test_tick_bitmap {
             MateI32::zero()             // Zero
         ];
         
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&extreme_ticks)) {
             let tick = *std::vector::borrow(&extreme_ticks, i);
             
@@ -322,7 +312,7 @@ module bluefin_spot::test_tick_bitmap {
 
     #[test]
     fun test_next_initialized_tick_mixed_positive_negative() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let bitmap = create_empty_bitmap(&mut scenario);
         
         // Test with both positive and negative ticks
@@ -330,7 +320,7 @@ module bluefin_spot::test_tick_bitmap {
         let negative_tick_values = vector[25u32, 75u32, 125u32];
         
         // Test positive ticks
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&positive_ticks)) {
             let tick_value = *std::vector::borrow(&positive_ticks, i);
             let tick = MateI32::from(tick_value);
@@ -361,17 +351,15 @@ module bluefin_spot::test_tick_bitmap {
     //                 Integration Tests                        //
     //===========================================================//
 
-    #[test]
-    fun test_cast_to_u8_comprehensive() {
-        // Test comprehensive range of cast_to_u8 function
-        
-        // Test all values from 0 to 255
-        let i = 0u32;
-        while (i <= 255u32) {
+    // Shared body for the cast_to_u8 coverage tests. Split into separate
+    // #[test] entry points below so each stays within the default per-test gas
+    // budget (covering the full 0..=255 range in one test times out).
+    fun check_cast_to_u8_range(mut i: u32, end: u32) {
+        while (i <= end) {
             let positive_index = MateI32::from(i);
             let result_positive = tick_bitmap::cast_to_u8(positive_index);
             assert!(result_positive == (i as u8), (i as u64));
-            
+
             if (i > 0) {
                 let negative_index = MateI32::neg_from(i);
                 let result_negative = tick_bitmap::cast_to_u8(negative_index);
@@ -379,14 +367,34 @@ module bluefin_spot::test_tick_bitmap {
                 let expected_negative = if (i == 256) { 0u8 } else { ((256u32 - i) as u8) };
                 assert!(result_negative == expected_negative, (i as u64) + 1000);
             };
-            
+
             i = i + 1;
         };
     }
 
     #[test]
+    fun test_cast_to_u8_comprehensive_0_63() {
+        check_cast_to_u8_range(0u32, 63u32);
+    }
+
+    #[test]
+    fun test_cast_to_u8_comprehensive_64_127() {
+        check_cast_to_u8_range(64u32, 127u32);
+    }
+
+    #[test]
+    fun test_cast_to_u8_comprehensive_128_191() {
+        check_cast_to_u8_range(128u32, 191u32);
+    }
+
+    #[test]
+    fun test_cast_to_u8_comprehensive_192_255() {
+        check_cast_to_u8_range(192u32, 255u32);
+    }
+
+    #[test]
     fun test_bitmap_operations_consistency() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let bitmap = create_empty_bitmap(&mut scenario);
         
         // Test that multiple calls to next_initialized_tick_within_one_word
@@ -412,14 +420,14 @@ module bluefin_spot::test_tick_bitmap {
 
     #[test]
     fun test_tick_spacing_validation() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let bitmap = create_empty_bitmap(&mut scenario);
         
         // Test various tick spacings
         let spacings = vector[1u32, 2u32, 3u32, 5u32, 10u32, 60u32, 200u32];
         let base_tick = MateI32::from(1000u32);
         
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&spacings)) {
             let spacing = *std::vector::borrow(&spacings, i);
             

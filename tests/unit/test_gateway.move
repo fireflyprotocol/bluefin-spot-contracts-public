@@ -1,12 +1,3 @@
-/*
-  Copyright (c) 2025 Bluefin Labs Inc.
-  Proprietary Smart Contract License – All Rights Reserved.
-
-  This source code is provided for transparency and verification only.
-  Use, modification, reproduction, or redeployment of this code 
-  requires prior written permission from the Bluefin Labs Inc.
-*/
-
 #[test_only]
 module bluefin_spot::test_gateway {
     use sui::test_scenario::{Self};
@@ -27,9 +18,9 @@ module bluefin_spot::test_gateway {
 
     #[test]
     fun should_be_able_to_create_pool_via_gateway() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
-        let clock = clock::create_for_testing(test_scenario::ctx(&mut scenario));
+        let mut clock = clock::create_for_testing(test_scenario::ctx(&mut scenario));
         clock::set_for_testing(&mut clock, test_utils::start_time());
         clock::share_for_testing(clock);
         config::init_test(test_scenario::ctx(&mut scenario));
@@ -41,7 +32,7 @@ module bluefin_spot::test_gateway {
         {
             let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario, test_utils::admin_address());
             let clock = test_scenario::take_shared<Clock>(&scenario);
-            let config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut config = test_scenario::take_shared<GlobalConfig>(&scenario);
            
             let icon_url = b"https://bluefin.io/images/nfts/default.gif";
             let coin_a_symbol = b"BLUE";
@@ -92,9 +83,9 @@ module bluefin_spot::test_gateway {
     #[test]
     #[expected_failure(abort_code = 1036, location = bluefin_spot::gateway)]
     fun should_fail_to_create_pool_using_deprecated_method() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
-        let clock = clock::create_for_testing(test_scenario::ctx(&mut scenario));
+        let mut clock = clock::create_for_testing(test_scenario::ctx(&mut scenario));
         clock::set_for_testing(&mut clock, test_utils::start_time());
         clock::share_for_testing(clock);
         config::init_test(test_scenario::ctx(&mut scenario));
@@ -151,17 +142,17 @@ module bluefin_spot::test_gateway {
 
     #[test]
     fun should_be_able_to_provide_liquidity_via_gateway() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_pool_and_position(&mut scenario, test_utils::alice_address());
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
             // take pool, clock, protocol config 
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
 
             // fetch Alice's position
-            let position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
+            let mut position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
 
             // create some test coins
             let coin_a = balance::create_for_testing<BLUE>(10000000000); // 10 Blue
@@ -192,17 +183,17 @@ module bluefin_spot::test_gateway {
     #[test]
     #[expected_failure(abort_code = 1010, location = bluefin_spot::gateway)]
     fun should_fail_to_provide_liquidity_as_coin_a_is_not_enough() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_pool_and_position(&mut scenario, test_utils::alice_address());
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
             // take pool, clock, protocol config 
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
 
             // fetch Alice's position
-            let position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
+            let mut position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
 
             // create some test coins
             let coin_a = balance::create_for_testing<BLUE>(10000000000); // 10 Blue
@@ -233,17 +224,17 @@ module bluefin_spot::test_gateway {
      #[test]
     #[expected_failure(abort_code = 1010, location = bluefin_spot::gateway)]
     fun should_fail_to_provide_liquidity_as_coin_b_is_not_enough() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_pool_and_position(&mut scenario, test_utils::alice_address());
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
             // take pool, clock, protocol config 
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
 
             // fetch Alice's position
-            let position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
+            let mut position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
 
             // create some test coins
             let coin_a = balance::create_for_testing<BLUE>(10000000000); // 10 Blue
@@ -273,14 +264,14 @@ module bluefin_spot::test_gateway {
 
     #[test]
     fun should_be_able_to_provide_liquidity_via_gateway_with_fixed_amount() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_pool_and_position(&mut scenario, test_utils::alice_address());
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
+            let mut position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
             let coin_a = balance::create_for_testing<BLUE>(10000000000); // 10 Blue
             let coin_b = balance::create_for_testing<USDC>(1000000); // 1 USDC
             gateway::provide_liquidity_with_fixed_amount<BLUE, USDC>(
@@ -307,14 +298,14 @@ module bluefin_spot::test_gateway {
     #[test]
     #[expected_failure(abort_code = 1010, location = bluefin_spot::gateway)]
     fun should_be_able_to_provide_liquidity_via_gateway_with_fixed_amount_as_coin_b_exceeds_slippage() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_pool_and_position(&mut scenario, test_utils::alice_address());
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
+            let mut position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
             let coin_a = balance::create_for_testing<BLUE>(10000000000); // 10 Blue
             let coin_b = balance::create_for_testing<USDC>(1000000); // 1 USDC
             gateway::provide_liquidity_with_fixed_amount<BLUE, USDC>(
@@ -342,14 +333,14 @@ module bluefin_spot::test_gateway {
     #[test]
     #[expected_failure(abort_code = 1004, location = bluefin_spot::utils)]
     fun should_be_able_to_provide_liquidity_via_gateway_with_fixed_amount_as_insufficient_coin_amount_is_provided() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_pool_and_position(&mut scenario, test_utils::alice_address());
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
+            let mut position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
             let coin_a = balance::create_for_testing<BLUE>(10000000000); // 10 Blue
             let coin_b = balance::create_for_testing<USDC>(1000000); // 1 USDC
             gateway::provide_liquidity_with_fixed_amount<BLUE, USDC>(
@@ -376,14 +367,14 @@ module bluefin_spot::test_gateway {
     #[test]
     #[expected_failure(abort_code = 1010, location = bluefin_spot::gateway)]
     fun should_be_able_to_provide_liquidity_via_gateway_with_fixed_amount_as_coin_a_exceeds_slippage() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_pool_and_position(&mut scenario, test_utils::alice_address());
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
+            let mut position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
             let coin_a = balance::create_for_testing<BLUE>(10000000000); // 10 Blue
             let coin_b = balance::create_for_testing<USDC>(1000000); // 1 USDC
             gateway::provide_liquidity_with_fixed_amount<BLUE, USDC>(
@@ -409,14 +400,14 @@ module bluefin_spot::test_gateway {
 
     #[test]
     fun should_be_able_to_remove_liquidity() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_position_having_liquidity(&mut scenario, test_utils::alice_address());
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
+            let mut position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
     
             gateway::remove_liquidity<BLUE, USDC>(
                 &clock,
@@ -441,14 +432,14 @@ module bluefin_spot::test_gateway {
     #[test]
     #[expected_failure(abort_code = 1010, location = bluefin_spot::gateway)]
     fun should_fail_to_remove_liquidity_as_coin_a_exceeds_slippage() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_position_having_liquidity(&mut scenario, test_utils::alice_address());
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
+            let mut position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
     
             gateway::remove_liquidity<BLUE, USDC>(
                 &clock,
@@ -474,14 +465,14 @@ module bluefin_spot::test_gateway {
     #[test]
     #[expected_failure(abort_code = 1010, location = bluefin_spot::gateway)]
     fun should_fail_to_remove_liquidity_as_coin_b_exceeds_slippage() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_position_having_liquidity(&mut scenario, test_utils::alice_address());
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
+            let mut position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
     
             gateway::remove_liquidity<BLUE, USDC>(
                 &clock,
@@ -505,11 +496,11 @@ module bluefin_spot::test_gateway {
 
     #[test]
     fun should_be_able_to_close_position() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_position_having_liquidity(&mut scenario, test_utils::alice_address());
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             let position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
@@ -533,11 +524,11 @@ module bluefin_spot::test_gateway {
 
     #[test]
     fun should_be_able_to_close_position_with_no_liquidity_in_it() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_position_having_liquidity(&mut scenario, test_utils::alice_address());
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
 
@@ -563,11 +554,11 @@ module bluefin_spot::test_gateway {
     #[test]
     fun should_be_able_to_swap_assets_via_gateway() {
         // First set environment with pool and position having liquidity
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_position_having_liquidity(&mut scenario, test_utils::alice_address());
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             // create some test coins
@@ -596,11 +587,11 @@ module bluefin_spot::test_gateway {
     #[test]
     fun should_be_able_to_flash_swap_a_to_b() {
         // First set environment with pool and position having liquidity
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_position_having_liquidity(&mut scenario, test_utils::alice_address());
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             // create some test coins
@@ -629,11 +620,11 @@ module bluefin_spot::test_gateway {
     #[test]
     fun should_be_able_to_flash_swap_by_amount_out() {
         // First set environment with pool and position having liquidity
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_position_having_liquidity(&mut scenario, test_utils::alice_address());
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             // create some test coins
@@ -662,11 +653,11 @@ module bluefin_spot::test_gateway {
     #[test]
     fun should_fail_to_do_flash_swap_by_amount_out_as_slippage_exceeds() {
         // First set environment with pool and position having liquidity
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_position_having_liquidity(&mut scenario, test_utils::alice_address());
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             // create some test coins
@@ -697,11 +688,11 @@ module bluefin_spot::test_gateway {
     #[expected_failure(abort_code = 1010, location = bluefin_spot::gateway)]
     fun should_fail_to_do_flash_swap_from_a_to_b_as_slippage_exceeds() {
         // First set environment with pool and position having liquidity
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_position_having_liquidity(&mut scenario, test_utils::alice_address());
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             // create some test coins
@@ -730,11 +721,11 @@ module bluefin_spot::test_gateway {
     #[test]
     fun should_be_able_to_do_flash_swap_from_b_to_a() {
         // First set environment with pool and position having liquidity
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_position_having_liquidity(&mut scenario, test_utils::alice_address());
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             // create some test coins
@@ -765,11 +756,11 @@ module bluefin_spot::test_gateway {
     #[expected_failure(abort_code = 1010, location = bluefin_spot::gateway)]
     fun should_fail_to_do_flash_swap_from_b_to_a_as_slippage_exceeds() {
         // First set environment with pool and position having liquidity
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_position_having_liquidity(&mut scenario, test_utils::alice_address());
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             // create some test coins
@@ -798,13 +789,13 @@ module bluefin_spot::test_gateway {
     #[test]
     fun should_be_able_to_collect_fees_via_gateway() {
         // First set environment with pool and position having liquidity
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_position_having_liquidity(&mut scenario, test_utils::alice_address());
 
         // perform a swap to generate some fees in the pool
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-           let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+           let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
            
            test_utils::perform_swap_in_test_scenario(&mut scenario, &mut pool, test_utils::bob_address());
            test_scenario::return_shared(pool);
@@ -813,10 +804,10 @@ module bluefin_spot::test_gateway {
         // now collect fees using Alice's position
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
+            let mut position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
     
             gateway::collect_fee<BLUE, USDC>(
                 &clock,
@@ -887,12 +878,12 @@ module bluefin_spot::test_gateway {
     #[expected_failure(abort_code = 1033,location = bluefin_spot::gateway)]
     fun should_not_be_able_to_collect_rewards_via_gateway() {
         // First set environment with pool having rewards and position having liquidity
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_pool_having_rewards(&mut scenario, test_utils::bob_address());
 
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::open_position_and_provide_liquidity_in_test_scenario
             (&mut scenario,&mut pool, test_utils::alice_address());
 
@@ -902,7 +893,7 @@ module bluefin_spot::test_gateway {
         // perform a swap to generate some fees and rewards in the pool
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-           let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+           let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
            
            test_utils::perform_swap_in_test_scenario(&mut scenario, &mut pool, test_utils::bob_address());
            test_scenario::return_shared(pool);
@@ -911,10 +902,10 @@ module bluefin_spot::test_gateway {
         // now collect fees using Alice's position
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
+            let mut position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
     
             gateway::collect_reward<BLUE, USDC, USDC>(
                 &clock,
@@ -936,11 +927,11 @@ module bluefin_spot::test_gateway {
     #[test]
     fun should_be_able_to_perform_a_route_swap_a_to_b() {
         // First set environment with pool and position having liquidity
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_position_having_liquidity(&mut scenario, test_utils::alice_address());
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             // create some test coins
@@ -973,11 +964,11 @@ module bluefin_spot::test_gateway {
      #[test]
     fun should_be_able_to_perform_a_route_swap_a_to_b_as_middle_step() {
         // First set environment with pool and position having liquidity
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_position_having_liquidity(&mut scenario, test_utils::alice_address());
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             // create some test coins
@@ -1011,11 +1002,11 @@ module bluefin_spot::test_gateway {
     #[expected_failure(abort_code = 1010, location = bluefin_spot::gateway)]
     fun should_fail_to_perform_a_route_swap_a_to_b_as_slippage_exceeds() {
         // First set environment with pool and position having liquidity
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_position_having_liquidity(&mut scenario, test_utils::alice_address());
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             // create some test coins
@@ -1049,11 +1040,11 @@ module bluefin_spot::test_gateway {
     #[test]
     fun should_be_able_to_perform_a_route_swap_b_to_a() {
         // First set environment with pool and position having liquidity
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_position_having_liquidity(&mut scenario, test_utils::alice_address());
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             // create some test coins
@@ -1086,11 +1077,11 @@ module bluefin_spot::test_gateway {
     #[test]
     fun should_be_able_to_perform_a_route_swap_a_to_b_by_amount_out() {
         // First set environment with pool and position having liquidity
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_position_having_liquidity(&mut scenario, test_utils::alice_address());
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             // create some test coins
@@ -1124,11 +1115,11 @@ module bluefin_spot::test_gateway {
     #[expected_failure(abort_code = 1010, location = bluefin_spot::gateway)]
     fun should_fail_to_perform_a_route_swap_a_to_b_by_amount_out_as_slippage_exceeds() {
         // First set environment with pool and position having liquidity
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_position_having_liquidity(&mut scenario, test_utils::alice_address());
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             // create some test coins

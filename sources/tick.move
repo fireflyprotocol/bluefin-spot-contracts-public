@@ -8,10 +8,7 @@
 */
 
 module bluefin_spot::tick {
-    use sui::object::{ID};
-    use sui::tx_context::{TxContext};
     use sui::table::{Self, Table};
-    use std::vector;
 
     // local modules
     use integer_mate::i32::{Self, I32};
@@ -29,16 +26,13 @@ module bluefin_spot::tick {
 
 
     // friend modules
-    friend bluefin_spot::pool;
-    #[test_only]
-    friend bluefin_spot::test_tick;
 
     //===========================================================//
     //                           Structs                         //
     //===========================================================//
 
     /// Ticks manager
-    struct TickManager has store {
+    public struct TickManager has store {
         tick_spacing: u32,
         ticks: Table<I32, TickInfo>,                    
         bitmap: Table<I32, u256>,
@@ -46,7 +40,7 @@ module bluefin_spot::tick {
 
     /// Tick infos.
     #[allow(unused_field)]
-    struct TickInfo has copy, drop, store {
+    public struct TickInfo has copy, drop, store {
         index: I32,  // -400K to 400K  -10, 0, 10, 20, 30, 40
         sqrt_price: u128,
         // total liquidity at tick
@@ -64,7 +58,7 @@ module bluefin_spot::tick {
     }
 
     /// Initializes the tick manager
-    public (friend) fun initialize_manager(tick_spacing: u32, ctx: &mut TxContext): TickManager {
+    public(package) fun initialize_manager(tick_spacing: u32, ctx: &mut TxContext): TickManager {
 
         TickManager {
             tick_spacing,
@@ -75,7 +69,7 @@ module bluefin_spot::tick {
     }
 
 
-    public (friend) fun update(
+    public(package) fun update(
         manager: &mut TickManager, 
         _: ID,
         index: I32, 
@@ -109,7 +103,7 @@ module bluefin_spot::tick {
                 tick.seconds_out_side = seconds_outside;
                 tick.reward_growths_outside = reward_growths_global
             } else {
-                let index = 0;
+                let mut index = 0;
                 while (index < vector::length<u128>(&reward_growths_global)) {
                       vector::push_back<u128>(&mut tick.reward_growths_outside, 0);
                     index = index + 1;
@@ -129,7 +123,7 @@ module bluefin_spot::tick {
         (liqudity_after == 0) != (initial_gross_liquidity == 0)
     }
 
-    public (friend) fun cross(
+    public(package) fun cross(
         manager: &mut TickManager, 
         index: I32, 
         fee_growth_global_coin_a: u128, 
@@ -152,7 +146,7 @@ module bluefin_spot::tick {
         tick.liquidity_net
     }
 
-    public (friend) fun get_mutable_tick_from_table(ticks: &mut Table<I32, TickInfo>, index: I32) : &mut TickInfo {
+    public(package) fun get_mutable_tick_from_table(ticks: &mut Table<I32, TickInfo>, index: I32) : &mut TickInfo {
 
         if (!table::contains(ticks, index)) {
             table::add(ticks, index, create_tick(index));
@@ -160,7 +154,7 @@ module bluefin_spot::tick {
         table::borrow_mut(ticks, index)
     }   
 
-    public (friend) fun get_mutable_tick_from_manager(manager: &mut TickManager, index: I32) : &mut TickInfo {
+    public(package) fun get_mutable_tick_from_manager(manager: &mut TickManager, index: I32) : &mut TickInfo {
         get_mutable_tick_from_table(&mut manager.ticks, index)
     }   
 
@@ -250,9 +244,9 @@ module bluefin_spot::tick {
     }
 
     public fun fetch_provided_ticks(manager: &TickManager, ticks: vector<u32>): vector<TickInfo> {
-        let i = 0;
+        let mut i = 0;
         let count = vector::length(&ticks);
-        let result = vector::empty<TickInfo>();
+        let mut result = vector::empty<TickInfo>();
         while(i < count){
             let tick_bits = *vector::borrow(&ticks, i);
             let index = i32::from_u32(tick_bits);
@@ -267,11 +261,11 @@ module bluefin_spot::tick {
         result
     }
 
-    public (friend) fun mutable_bitmap(manager: &mut TickManager ): &mut Table<I32, u256> {
+    public(package) fun mutable_bitmap(manager: &mut TickManager ): &mut Table<I32, u256> {
         &mut manager.bitmap
     }
     
-    public (friend) fun remove(manager: &mut TickManager, tick: I32) {
+    public(package) fun remove(manager: &mut TickManager, tick: I32) {
         table::remove(&mut manager.ticks, tick);
     }
 
@@ -279,8 +273,8 @@ module bluefin_spot::tick {
         reward_growths_global: vector<u128>,  
         tick_reward_growths: vector<u128> 
     ) : vector<u128> {
-        let current_index = 0;
-        let diff_in_reward_growths = vector::empty<u128>();
+        let mut current_index = 0;
+        let mut diff_in_reward_growths = vector::empty<u128>();
         while (current_index < vector::length<u128>(&reward_growths_global)) {
             let tick_reward_growth = if (current_index >=   vector::length<u128>(&tick_reward_growths)) {
                 0

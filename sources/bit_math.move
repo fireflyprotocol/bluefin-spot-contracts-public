@@ -11,9 +11,9 @@ module bluefin_spot::bit_math {
     
     use bluefin_spot::constants;
 
-    public fun least_significant_bit(mask: u256) : u8 {
+    public fun least_significant_bit(mut mask: u256) : u8 {
         assert!(mask > 0, 0);
-        let bit = 255;
+        let mut bit = 255;
         if (mask & (constants::max_u128() as u256) > 0) {
             bit = bit - 128;
         } else {
@@ -55,9 +55,9 @@ module bluefin_spot::bit_math {
         bit
     }
     
-    public fun most_significant_bit(mask: u256) : u8 {
+    public fun most_significant_bit(mut mask: u256) : u8 {
         assert!(mask > 0, 0);
-        let bit = 0;
+        let mut bit = 0;
         if (mask >= 340282366920938463463374607431768211456) {
             mask = mask >> 128;
             bit = bit + 128;

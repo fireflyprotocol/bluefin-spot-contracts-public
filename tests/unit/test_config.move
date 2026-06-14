@@ -1,18 +1,8 @@
-/*
-  Copyright (c) 2025 Bluefin Labs Inc.
-  Proprietary Smart Contract License – All Rights Reserved.
-
-  This source code is provided for transparency and verification only.
-  Use, modification, reproduction, or redeployment of this code 
-  requires prior written permission from the Bluefin Labs Inc.
-*/
-
 #[test_only]
 module bluefin_spot::test_config {
     use sui::test_scenario::{Self, Scenario};
     use sui::table::{Self};
     use sui::dynamic_field;
-    use std::vector;
     use std::string::{String};
     use bluefin_spot::config::{Self, GlobalConfig};
     use bluefin_spot::tick_math;
@@ -27,9 +17,9 @@ module bluefin_spot::test_config {
     const MANAGER3: address = @0x3;
 
     // Test coin types for pool creation fee testing
-    struct USDC has drop {}
-    struct SUI has drop {}
-    struct BTC has drop {}
+    public struct USDC has drop {}
+    public struct SUI has drop {}
+    public struct BTC has drop {}
 
     // Helper functions for creating test data
     fun create_test_config(scenario: &mut Scenario): GlobalConfig {
@@ -44,11 +34,11 @@ module bluefin_spot::test_config {
 
     #[test]
     fun test_create_config_basic() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let config = create_test_config(&mut scenario);
         
         // Check initial values
-        assert!(config::get_version(&config) == 8, 0); // VERSION constant
+        assert!(config::get_version(&config) == 9, 0); // VERSION constant
         assert!(MateI32::eq(config::get_min_tick(&config), tick_math::min_tick()), 1);
         assert!(MateI32::eq(config::get_max_tick(&config), tick_math::max_tick()), 2);
         assert!(vector::length(config::get_reward_managers(&config)) == 0, 3);
@@ -59,7 +49,7 @@ module bluefin_spot::test_config {
 
     #[test]
     fun test_init_test_function() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         
         // Test the init_test function
         config::init_test(test_scenario::ctx(&mut scenario));
@@ -73,7 +63,7 @@ module bluefin_spot::test_config {
 
     #[test]
     fun test_get_tick_range() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let config = create_test_config(&mut scenario);
         
         let (min_tick, max_tick) = config::get_tick_range(&config);
@@ -92,7 +82,7 @@ module bluefin_spot::test_config {
 
     #[test]
     fun test_verify_version_success() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let config = create_test_config(&mut scenario);
         
         // Should not abort with correct version
@@ -105,8 +95,8 @@ module bluefin_spot::test_config {
     #[test]
     #[expected_failure(abort_code = 1001, location = bluefin_spot::config)]
     fun test_verify_version_failure() {
-        let scenario = test_scenario::begin(ADMIN);
-        let config = create_test_config(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut config = create_test_config(&mut scenario);
         
         // Set wrong version
         config::set_version(&mut config, 5);
@@ -120,11 +110,11 @@ module bluefin_spot::test_config {
 
     #[test]
     fun test_get_supported_version() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let config = create_test_config(&mut scenario);
         
         let version = config::get_supported_version(&config);
-        assert!(version == 8, 0);
+        assert!(version == 9, 0);
         
         config::destroy_config_for_testing(config);
         test_scenario::end(scenario);
@@ -132,8 +122,8 @@ module bluefin_spot::test_config {
 
     #[test]
     fun test_set_version() {
-        let scenario = test_scenario::begin(ADMIN);
-        let config = create_test_config(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut config = create_test_config(&mut scenario);
         
         config::set_version(&mut config, 5);
         assert!(config::get_version(&config) == 5, 0);
@@ -151,8 +141,8 @@ module bluefin_spot::test_config {
 
     #[test]
     fun test_increase_version_success() {
-        let scenario = test_scenario::begin(ADMIN);
-        let config = create_test_config(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut config = create_test_config(&mut scenario);
         
         // Set version to 6 (less than VERSION = 8)
         config::set_version(&mut config, 6);
@@ -169,8 +159,8 @@ module bluefin_spot::test_config {
 
     #[test]
     fun test_increase_version_multiple_times() {
-        let scenario = test_scenario::begin(ADMIN);
-        let config = create_test_config(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut config = create_test_config(&mut scenario);
         
         // Set version to 5
         config::set_version(&mut config, 5);
@@ -192,8 +182,8 @@ module bluefin_spot::test_config {
     #[test]
     #[expected_failure(abort_code = 1005, location = bluefin_spot::config)]
     fun test_increase_version_at_max() {
-        let scenario = test_scenario::begin(ADMIN);
-        let config = create_test_config(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut config = create_test_config(&mut scenario);
         
         // Version is already at VERSION (8), should fail
         config::increase_supported_version(&mut config);
@@ -205,11 +195,11 @@ module bluefin_spot::test_config {
     #[test]
     #[expected_failure(abort_code = 1005, location = bluefin_spot::config)]
     fun test_increase_version_beyond_max() {
-        let scenario = test_scenario::begin(ADMIN);
-        let config = create_test_config(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut config = create_test_config(&mut scenario);
         
         // Set version to VERSION (8)
-        config::set_version(&mut config, 8);
+        config::set_version(&mut config, 9);
         
         // Should fail when trying to increase beyond VERSION
         config::increase_supported_version(&mut config);
@@ -224,7 +214,7 @@ module bluefin_spot::test_config {
 
     #[test]
     fun test_verify_reward_manager_empty() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let config = create_test_config(&mut scenario);
         
         // Should return false for any manager when list is empty
@@ -237,8 +227,8 @@ module bluefin_spot::test_config {
 
     #[test]
     fun test_set_reward_manager_single() {
-        let scenario = test_scenario::begin(ADMIN);
-        let config = create_test_config(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut config = create_test_config(&mut scenario);
         
         // Add a single reward manager
         config::set_reward_manager(&mut config, MANAGER1);
@@ -253,8 +243,8 @@ module bluefin_spot::test_config {
 
     #[test]
     fun test_set_reward_manager_multiple() {
-        let scenario = test_scenario::begin(ADMIN);
-        let config = create_test_config(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut config = create_test_config(&mut scenario);
         
         // Add multiple reward managers
         config::set_reward_manager(&mut config, MANAGER1);
@@ -279,8 +269,8 @@ module bluefin_spot::test_config {
     #[test]
     #[expected_failure(abort_code = 1032, location = bluefin_spot::config)]
     fun test_set_reward_manager_duplicate() {
-        let scenario = test_scenario::begin(ADMIN);
-        let config = create_test_config(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut config = create_test_config(&mut scenario);
         
         // Add manager first time - should succeed
         config::set_reward_manager(&mut config, MANAGER1);
@@ -294,8 +284,8 @@ module bluefin_spot::test_config {
 
     #[test]
     fun test_remove_reward_manager_single() {
-        let scenario = test_scenario::begin(ADMIN);
-        let config = create_test_config(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut config = create_test_config(&mut scenario);
         
         // Add and then remove a manager
         config::set_reward_manager(&mut config, MANAGER1);
@@ -311,8 +301,8 @@ module bluefin_spot::test_config {
 
     #[test]
     fun test_remove_reward_manager_multiple() {
-        let scenario = test_scenario::begin(ADMIN);
-        let config = create_test_config(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut config = create_test_config(&mut scenario);
         
         // Add multiple managers
         config::set_reward_manager(&mut config, MANAGER1);
@@ -347,8 +337,8 @@ module bluefin_spot::test_config {
     #[test]
     #[expected_failure(abort_code = 1031, location = bluefin_spot::config)]
     fun test_remove_reward_manager_not_found() {
-        let scenario = test_scenario::begin(ADMIN);
-        let config = create_test_config(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut config = create_test_config(&mut scenario);
         
         // Try to remove manager that doesn't exist
         config::remove_reward_manager(&mut config, MANAGER1);
@@ -360,8 +350,8 @@ module bluefin_spot::test_config {
     #[test]
     #[expected_failure(abort_code = 1031, location = bluefin_spot::config)]
     fun test_remove_reward_manager_already_removed() {
-        let scenario = test_scenario::begin(ADMIN);
-        let config = create_test_config(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut config = create_test_config(&mut scenario);
         
         // Add and remove manager
         config::set_reward_manager(&mut config, MANAGER1);
@@ -380,7 +370,7 @@ module bluefin_spot::test_config {
 
     #[test]
     fun test_get_pool_creation_fee_no_dynamic_field() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let config = create_test_config(&mut scenario);
         
         // Should return (false, 0) when no dynamic field exists
@@ -394,13 +384,13 @@ module bluefin_spot::test_config {
 
     #[test]
     fun test_get_pool_creation_fee_with_dynamic_field() {
-        let scenario = test_scenario::begin(ADMIN);
-        let config = create_test_config(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut config = create_test_config(&mut scenario);
         
         // Add dynamic field with fee table
         test_scenario::next_tx(&mut scenario, ADMIN);
         let ctx = test_scenario::ctx(&mut scenario);
-        let fee_table = table::new<String, u64>(ctx);
+        let mut fee_table = table::new<String, u64>(ctx);
         
         // Add fees for different coin types
         let usdc_type = utils::get_type_string<USDC>();
@@ -437,8 +427,8 @@ module bluefin_spot::test_config {
 
     #[test]
     fun test_get_config_id() {
-        let scenario = test_scenario::begin(ADMIN);
-        let config = create_test_config(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut config = create_test_config(&mut scenario);
         
         // Test that we can get the config ID
         let _uid = config::get_config_id(&mut config);
@@ -449,7 +439,7 @@ module bluefin_spot::test_config {
 
     #[test]
     fun test_get_id() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let config = create_test_config(&mut scenario);
         
         // Test the test-only getter
@@ -465,11 +455,11 @@ module bluefin_spot::test_config {
 
     #[test]
     fun test_full_config_lifecycle() {
-        let scenario = test_scenario::begin(ADMIN);
-        let config = create_test_config(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut config = create_test_config(&mut scenario);
         
         // 1. Verify initial state
-        assert!(config::get_version(&config) == 8, 0);
+        assert!(config::get_version(&config) == 9, 0);
         assert!(vector::length(config::get_reward_managers(&config)) == 0, 1);
         
         // 2. Add reward managers
@@ -500,8 +490,8 @@ module bluefin_spot::test_config {
 
     #[test]
     fun test_reward_manager_edge_cases() {
-        let scenario = test_scenario::begin(ADMIN);
-        let config = create_test_config(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut config = create_test_config(&mut scenario);
         
         // Test with same address multiple operations
         config::set_reward_manager(&mut config, MANAGER1);
@@ -520,8 +510,8 @@ module bluefin_spot::test_config {
 
     #[test]
     fun test_version_edge_cases() {
-        let scenario = test_scenario::begin(ADMIN);
-        let config = create_test_config(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut config = create_test_config(&mut scenario);
         
         // Test version 0
         config::set_version(&mut config, 0);
@@ -542,15 +532,15 @@ module bluefin_spot::test_config {
 
     #[test]
     fun test_large_number_of_reward_managers() {
-        let scenario = test_scenario::begin(ADMIN);
-        let config = create_test_config(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut config = create_test_config(&mut scenario);
         
         // Add many reward managers using predefined addresses
-        let managers = vector::empty<address>();
+        let mut managers = vector::empty<address>();
         let addresses = vector[
             @0x1, @0x2, @0x3, @0x4, @0x5, @0x6, @0x7, @0x8, @0x9, @0xa
         ];
-        let i = 0;
+        let mut i = 0;
         while (i < vector::length(&addresses)) {
             let addr = *vector::borrow(&addresses, i);
             vector::push_back(&mut managers, addr);
@@ -562,7 +552,7 @@ module bluefin_spot::test_config {
         assert!(vector::length(config::get_reward_managers(&config)) == 10, 0);
         
         // Verify all can be found
-        let j = 0;
+        let mut j = 0;
         while (j < vector::length(&managers)) {
             let addr = *vector::borrow(&managers, j);
             assert!(config::verify_reward_manager(&config, addr) == true, (j as u64));
@@ -570,7 +560,7 @@ module bluefin_spot::test_config {
         };
         
         // Remove some managers
-        let k = 0;
+        let mut k = 0;
         while (k < 5) {
             let addr = *vector::borrow(&managers, k);
             config::remove_reward_manager(&mut config, addr);
@@ -590,7 +580,7 @@ module bluefin_spot::test_config {
 
     #[test]
     fun test_all_getters() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let config = create_test_config(&mut scenario);
         
         // Test all getter functions
@@ -602,7 +592,7 @@ module bluefin_spot::test_config {
         let _id = config::get_id(&config);
         
         assert!(version == supported_version, 0);
-        assert!(version == 8, 1);
+        assert!(version == 9, 1);
         assert!(MateI32::eq(min_tick, tick_math::min_tick()), 2);
         assert!(MateI32::eq(max_tick, tick_math::max_tick()), 3);
         assert!(vector::length(managers) == 0, 4);
@@ -617,8 +607,8 @@ module bluefin_spot::test_config {
 
     #[test]
     fun test_error_codes() {
-        let scenario = test_scenario::begin(ADMIN);
-        let config = create_test_config(&mut scenario);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut config = create_test_config(&mut scenario);
         
         // Test version mismatch error
         config::set_version(&mut config, 5);

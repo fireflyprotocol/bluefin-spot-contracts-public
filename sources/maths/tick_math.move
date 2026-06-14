@@ -58,10 +58,10 @@ module bluefin_spot::tick_math {
 
     public fun get_tick_at_sqrt_price(sqrt_price: u128): I32 {
         assert!(sqrt_price >= MIN_SQRT_PRICE_X64 && sqrt_price <= MAX_SQRT_PRICE_X64, EINVALID_SQRT_PRICE);
-        let r = sqrt_price;
-        let msb = 0;
+        let mut r = sqrt_price;
+        let mut msb = 0;
 
-        let f: u8 = as_u8(r >= 0x10000000000000000) << 6; // If r >= 2^64, f = 64 else 0
+        let mut f: u8 = as_u8(r >= 0x10000000000000000) << 6; // If r >= 2^64, f = 64 else 0
         msb = msb | f;
         r = r >> f;
         f = as_u8(r >= 0x100000000) << 5; // 2^32
@@ -82,7 +82,7 @@ module bluefin_spot::tick_math {
         f = as_u8(r >= 0x2) << 0; // 2^0
         msb = msb | f;
 
-        let log_2_x32 = i128::shl(i128::sub(i128::from((msb as u128)), i128::from(64)), 32);
+        let mut log_2_x32 = i128::shl(i128::sub(i128::from((msb as u128)), i128::from(64)), 32);
 
         r = if (msb >= 64) {
             sqrt_price >> (msb - 63)
@@ -90,7 +90,7 @@ module bluefin_spot::tick_math {
             sqrt_price << (63 - msb)
         };
 
-        let shift = 31;
+        let mut shift = 31;
         while (shift >= 18) {
             r = ((r * r) >> 63);
             f = ((r >> 64) as u8);
@@ -124,7 +124,7 @@ module bluefin_spot::tick_math {
 
     fun get_sqrt_price_at_negative_tick(tick: I32): u128 {
         let abs_tick = i32::as_u32(i32::abs(i32H::mate_to_lib(tick)));
-        let ratio = if (abs_tick & 0x1 != 0) {
+        let mut ratio = if (abs_tick & 0x1 != 0) {
             18445821805675392311u128
         } else {
             18446744073709551616u128
@@ -189,7 +189,7 @@ module bluefin_spot::tick_math {
 
     fun get_sqrt_price_at_positive_tick(tick: I32): u128 {
         let abs_tick = i32::as_u32(i32::abs(i32H::mate_to_lib(tick)));
-        let ratio = if (abs_tick & 0x1 != 0) {
+        let mut ratio = if (abs_tick & 0x1 != 0) {
             79232123823359799118286999567u128
         } else {
             79228162514264337593543950336u128

@@ -18,6 +18,30 @@ Sui smart contracts for bluefin spot exchange
 - Show coverage report `sui move coverage summary`
 - Run tests and show coverage `sui move test --coverage; sui move coverage summary`
 
+### Handling `Test timed out` (per-test gas budget)
+A few tests are computationally heavy (they iterate over wide value ranges and call the
+sqrt-price / tick-conversion math repeatedly). Each unit test runs under a default
+per-test gas/instruction budget, and exceeding it makes the test runner report
+`Test timed out` rather than a normal failure. The two tests that are most likely to hit
+this are:
+- `bluefin_spot::test_tick_bitmap::test_cast_to_u8_comprehensive_*`
+- `bluefin_spot::test_math::test_bit_manipulation_coverage_*`
+
+These are split into smaller ranges so they pass under the default budget with a plain
+`sui move test`. If you re-merge them (or add similarly heavy tests) and see
+`Test timed out`, raise the per-test budget with the `--gas-limit` flag, e.g.:
+
+```
+# raise the per-test gas bound (value is the max gas any single test may use)
+sui move test --gas-limit 1000000000
+
+# or target just the heavy tests by name filter
+sui move test test_cast_to_u8_comprehensive --gas-limit 1000000000
+```
+
+Note: `--gas-limit` bounds a single test, so set it comfortably above the cost of the
+heaviest test rather than the whole suite.
+
 
 ## License
 ```

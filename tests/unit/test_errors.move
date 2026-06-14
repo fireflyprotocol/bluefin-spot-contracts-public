@@ -1,12 +1,3 @@
-/*
-  Copyright (c) 2025 Bluefin Labs Inc.
-  Proprietary Smart Contract License – All Rights Reserved.
-
-  This source code is provided for transparency and verification only.
-  Use, modification, reproduction, or redeployment of this code 
-  requires prior written permission from the Bluefin Labs Inc.
-*/
-
 #[test_only]
 module bluefin_spot::test_errors {
     use bluefin_spot::errors;
@@ -284,7 +275,7 @@ module bluefin_spot::test_errors {
         ];
 
         // Check that all error codes are in the expected range (1001-1040)
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&error_codes)) {
             let code = *std::vector::borrow(&error_codes, i);
             assert!(code >= 1001 && code <= 1040, i);

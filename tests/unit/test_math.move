@@ -1,12 +1,3 @@
-/*
-  Copyright (c) 2025 Bluefin Labs Inc.
-  Proprietary Smart Contract License – All Rights Reserved.
-
-  This source code is provided for transparency and verification only.
-  Use, modification, reproduction, or redeployment of this code 
-  requires prior written permission from the Bluefin Labs Inc.
-*/
-
 #[test_only]
 module bluefin_spot::test_math {
     use bluefin_spot::tick_math;
@@ -193,7 +184,7 @@ module bluefin_spot::test_math {
         // Test that positive and negative ticks have reciprocal relationship
         let test_ticks = vector[1u32, 10u32, 100u32, 1000u32];
         
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&test_ticks)) {
             let tick_val = *std::vector::borrow(&test_ticks, i);
             let pos_tick = i32H::lib_to_mate(i32::from(tick_val));
@@ -226,7 +217,7 @@ module bluefin_spot::test_math {
         // Test with larger tick values
         let large_ticks = vector[10000u32, 50000u32, 100000u32, 200000u32, 400000u32];
         
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&large_ticks)) {
             let tick_val = *std::vector::borrow(&large_ticks, i);
             let pos_tick = i32H::lib_to_mate(i32::from(tick_val));
@@ -259,7 +250,7 @@ module bluefin_spot::test_math {
             0u32, 1u32, 10u32, 100u32, 1000u32, 10000u32, 50000u32, 100000u32
         ];
         
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&test_ticks)) {
             let tick_val = *std::vector::borrow(&test_ticks, i);
             
@@ -346,7 +337,7 @@ module bluefin_spot::test_math {
             tick_math::max_sqrt_price()
         ];
         
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&sqrt_prices) - 1) {
             let price1 = *std::vector::borrow(&sqrt_prices, i);
             let price2 = *std::vector::borrow(&sqrt_prices, i + 1);
@@ -448,7 +439,7 @@ module bluefin_spot::test_math {
         
         // Test with tick spacing 1 (should accept all valid ticks)
         let test_ticks = vector[0u32, 1u32, 2u32, 3u32, 443635u32];
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&test_ticks)) {
             let tick_val = *std::vector::borrow(&test_ticks, i);
             let tick = i32H::lib_to_mate(i32::from(tick_val));
@@ -473,7 +464,7 @@ module bluefin_spot::test_math {
         let starts = vector[0u32, 1000u32, 10000u32, 100000u32, 400000u32];
         let ends = vector[100u32, 1100u32, 10100u32, 100100u32, 400100u32];
         
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&starts)) {
             let start = *std::vector::borrow(&starts, i);
             let end = *std::vector::borrow(&ends, i);
@@ -513,7 +504,7 @@ module bluefin_spot::test_math {
         let start_abs_values = vector[100u32, 1100u32, 10100u32, 100100u32, 400100u32];
         let end_abs_values = vector[0u32, 1000u32, 10000u32, 100000u32, 400000u32];
         
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&start_abs_values)) {
             let start_abs = *std::vector::borrow(&start_abs_values, i);
             let end_abs = *std::vector::borrow(&end_abs_values, i);
@@ -541,34 +532,11 @@ module bluefin_spot::test_math {
         };
     }
 
-    #[test]
-    fun test_bit_manipulation_coverage() {
-        // Test specific tick values that exercise different bit patterns
-        // This helps ensure all bit manipulation paths are covered
-        
-        let bit_test_ticks = vector[
-            1u32,      // 0x1
-            2u32,      // 0x2
-            4u32,      // 0x4
-            8u32,      // 0x8
-            16u32,     // 0x10
-            32u32,     // 0x20
-            64u32,     // 0x40
-            128u32,    // 0x80
-            256u32,    // 0x100
-            512u32,    // 0x200
-            1024u32,   // 0x400
-            2048u32,   // 0x800
-            4096u32,   // 0x1000
-            8192u32,   // 0x2000
-            16384u32,  // 0x4000
-            32768u32,  // 0x8000
-            65536u32,  // 0x10000
-            131072u32, // 0x20000
-            262144u32  // 0x40000
-        ];
-        
-        let i = 0;
+    // Shared body for the bit-manipulation coverage tests. Split into separate
+    // #[test] entry points below so each stays within the default per-test gas
+    // budget (the combined run exceeds it and times out).
+    fun check_bit_manipulation_coverage(bit_test_ticks: vector<u32>) {
+        let mut i = 0;
         while (i < std::vector::length(&bit_test_ticks)) {
             let tick_val = *std::vector::borrow(&bit_test_ticks, i);
             
@@ -601,9 +569,42 @@ module bluefin_spot::test_math {
             
             assert!(diff_pos <= 1, i + 200);
             assert!(diff_neg <= 1, i + 300);
-            
+
             i = i + 1;
         };
+    }
+
+    #[test]
+    fun test_bit_manipulation_coverage_low() {
+        // Lower half of the bit patterns: 0x1 .. 0x80
+        check_bit_manipulation_coverage(vector[
+            1u32,      // 0x1
+            2u32,      // 0x2
+            4u32,      // 0x4
+            8u32,      // 0x8
+            16u32,     // 0x10
+            32u32,     // 0x20
+            64u32,     // 0x40
+            128u32,    // 0x80
+            256u32,    // 0x100
+            512u32     // 0x200
+        ]);
+    }
+
+    #[test]
+    fun test_bit_manipulation_coverage_high() {
+        // Upper half of the bit patterns: 0x400 .. 0x40000
+        check_bit_manipulation_coverage(vector[
+            1024u32,   // 0x400
+            2048u32,   // 0x800
+            4096u32,   // 0x1000
+            8192u32,   // 0x2000
+            16384u32,  // 0x4000
+            32768u32,  // 0x8000
+            65536u32,  // 0x10000
+            131072u32, // 0x20000
+            262144u32  // 0x40000
+        ]);
     }
 
     //===========================================================//
@@ -613,7 +614,7 @@ module bluefin_spot::test_math {
     #[test]
     fun test_least_significant_bit_single_bits() {
         // Test single bit positions
-        let i = 0u8;
+        let mut i = 0u8;
         while (i < 255u8) {
             let mask = 1u256 << (i as u8);
             let result = bit_math::least_significant_bit(mask);
@@ -629,7 +630,7 @@ module bluefin_spot::test_math {
     #[test]
     fun test_most_significant_bit_single_bits() {
         // Test single bit positions
-        let i = 0u8;
+        let mut i = 0u8;
         while (i < 255u8) {
             let mask = 1u256 << (i as u8);
             let result = bit_math::most_significant_bit(mask);
@@ -773,7 +774,7 @@ module bluefin_spot::test_math {
             1024u256    // 2^10
         ];
         
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&powers)) {
             let power = *std::vector::borrow(&powers, i);
             let result = bit_math::least_significant_bit(power);
@@ -799,7 +800,7 @@ module bluefin_spot::test_math {
             1024u256    // 2^10
         ];
         
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&powers)) {
             let power = *std::vector::borrow(&powers, i);
             let result = bit_math::most_significant_bit(power);
@@ -824,7 +825,7 @@ module bluefin_spot::test_math {
             1023u256    // 2^10 - 1 = 1023
         ];
         
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&values)) {
             let value = *std::vector::borrow(&values, i);
             let result = bit_math::least_significant_bit(value);
@@ -851,7 +852,7 @@ module bluefin_spot::test_math {
         
         let expected_msb = vector[0u8, 1u8, 2u8, 3u8, 4u8, 5u8, 6u8, 7u8, 8u8, 9u8];
         
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&values)) {
             let value = *std::vector::borrow(&values, i);
             let expected = *std::vector::borrow(&expected_msb, i);
@@ -948,7 +949,7 @@ module bluefin_spot::test_math {
         // Test single bit at each boundary
         let boundaries = vector[0u8, 7u8, 8u8, 15u8, 16u8, 31u8, 32u8, 63u8, 64u8, 127u8, 128u8, 191u8, 192u8, 255u8];
         
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&boundaries)) {
             let bit_pos = *std::vector::borrow(&boundaries, i);
             let mask = 1u256 << bit_pos;
@@ -963,7 +964,7 @@ module bluefin_spot::test_math {
     #[test]
     fun test_bit_math_consistency() {
         // Test consistency between LSB and MSB for single bits
-        let i = 0u8;
+        let mut i = 0u8;
         while (i < 255u8) {
             let mask = 1u256 << (i as u8);
             let lsb = bit_math::least_significant_bit(mask);

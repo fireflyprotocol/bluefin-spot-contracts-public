@@ -1,19 +1,8 @@
-/*
-  Copyright (c) 2025 Bluefin Labs Inc.
-  Proprietary Smart Contract License – All Rights Reserved.
-
-  This source code is provided for transparency and verification only.
-  Use, modification, reproduction, or redeployment of this code 
-  requires prior written permission from the Bluefin Labs Inc.
-*/
-
 #[test_only]
 module bluefin_spot::test_utils {
     use std::string::{Self};
 
     use sui::test_scenario::{Self, Scenario};
-    use sui::transfer;
-    use sui::tx_context;
     use sui::balance::{Self, Balance};
     use sui::clock::{Self, Clock};
     use sui::coin;
@@ -26,7 +15,6 @@ module bluefin_spot::test_utils {
     use bluefin_spot::utils::{Self};
     use bluefin_spot::constants;
     use integer_mate::i128::{Self as MateI128};
-    use std::vector;
 
 
     const ADMIN: address = @0xABC;
@@ -43,8 +31,8 @@ module bluefin_spot::test_utils {
     const BLUE_USDC_LIQUIDITY: u128 = 519567915;
     const START_TIME: u64 = 1759930361000; // in ms
 
-    struct BLUE has drop {}
-    struct USDC has drop {}
+    public struct BLUE has drop {}
+    public struct USDC has drop {}
 
     #[test_only]
     public fun admin_address(): address {
@@ -111,7 +99,7 @@ module bluefin_spot::test_utils {
         scenario: &mut Scenario,
     ) {
         admin::test_init(test_scenario::ctx(scenario));
-        let clock = clock::create_for_testing(test_scenario::ctx(scenario));
+        let mut clock = clock::create_for_testing(test_scenario::ctx(scenario));
         clock::set_for_testing(&mut clock, START_TIME);
         clock::share_for_testing(clock);
         config::init_test(test_scenario::ctx(scenario));
@@ -123,7 +111,7 @@ module bluefin_spot::test_utils {
         {
             let admin_cap = test_scenario::take_from_address<AdminCap>(scenario, admin_address());
             let clock = test_scenario::take_shared<Clock>(scenario);
-            let config = test_scenario::take_shared<GlobalConfig>(scenario);
+            let mut config = test_scenario::take_shared<GlobalConfig>(scenario);
            
             let icon_url = b"https://bluefin.io/images/nfts/default.gif";
             let coin_a_symbol = b"BLUE";
@@ -198,7 +186,7 @@ module bluefin_spot::test_utils {
 
             let clock = test_scenario::take_shared<Clock>(scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(scenario);
-            let position = test_scenario::take_from_address<Position>(scenario, owner);
+            let mut position = test_scenario::take_from_address<Position>(scenario, owner);
             let (_,_,balance_a,balance_b) = pool::add_liquidity<BLUE, USDC>(
                 &clock,
                 &protocol_config,
@@ -226,7 +214,7 @@ module bluefin_spot::test_utils {
 
         test_scenario::next_tx(scenario, owner);
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(scenario);
             open_position_in_test_scenario(scenario, &mut pool, owner);
             test_scenario::return_shared(pool);
         }
@@ -241,7 +229,7 @@ module bluefin_spot::test_utils {
         setup_test_scenario_with_pool_and_position(scenario, owner);
         test_scenario::next_tx(scenario, owner);
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(scenario);
             provide_liquidity_in_test_scenario(scenario, &mut pool, owner);
             test_scenario::return_shared(pool);
         };
@@ -257,7 +245,7 @@ module bluefin_spot::test_utils {
 
         test_scenario::next_tx(scenario, manager);
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(scenario);
             add_rewards_in_test_scenario(scenario, &mut pool, manager);
             test_scenario::return_shared(pool);
         }
@@ -273,7 +261,7 @@ module bluefin_spot::test_utils {
         // add manager to reward managers list
         test_scenario::next_tx(scenario, admin_address());
         {   
-            let protocol_config = test_scenario::take_shared<GlobalConfig>(scenario);
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(scenario);
             let admin_cap = test_scenario::take_from_address<AdminCap>(scenario, admin_address());
             // add manager to reward managers list
             admin::add_reward_manager(&admin_cap, &mut protocol_config, manager);
@@ -287,15 +275,15 @@ module bluefin_spot::test_utils {
             // create some test coins
             let reward_coin = balance::create_for_testing<USDC>(1_000_000_000); // 1000 USDC
             let clock = test_scenario::take_shared<Clock>(scenario);
-            let protocol_config = test_scenario::take_shared<GlobalConfig>(scenario);
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(scenario);
             admin::initialize_pool_reward<BLUE, USDC, USDC>(
-                &protocol_config,
+                &mut protocol_config,
                 pool,
                 START_TIME,
                 10,
                 coin::from_balance<USDC>(reward_coin,test_scenario::ctx(scenario)),
                 string::utf8(b"USDC"),
-                6, 
+                6,
                 1_000_000_000,
                 &clock,
                 test_scenario::ctx(scenario)
@@ -323,7 +311,7 @@ module bluefin_spot::test_utils {
 
             let clock = test_scenario::take_shared<Clock>(scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(scenario);
-            let position = test_scenario::take_from_address<Position>(scenario, owner);
+            let mut position = test_scenario::take_from_address<Position>(scenario, owner);
             let (_,_,balance_a,balance_b) = pool::add_liquidity<BLUE, USDC>(
                 &clock,
                 &protocol_config,
@@ -527,7 +515,7 @@ module bluefin_spot::test_utils {
             0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff // max u256
         ];
         
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&values)) {
             let val = *std::vector::borrow(&values, i);
             assert!(utils::overflow_add(val, 0) == val, i);
@@ -864,7 +852,7 @@ module bluefin_spot::test_utils {
             1000000u128
         ];
         
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&test_values)) {
             let val = *std::vector::borrow(&test_values, i);
             let current_liquidity = val * 2;
@@ -892,7 +880,7 @@ module bluefin_spot::test_utils {
             4294967295u128, // max u32
         ];
         
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&boundaries)) {
             let boundary = *std::vector::borrow(&boundaries, i);
             if (boundary > 0) {
@@ -925,7 +913,7 @@ module bluefin_spot::test_utils {
         let test_cases = vector[1u128, 2u128, 3u128, 4u128, 5u128, 6u128, 7u128, 8u128, 9u128];
         let expected = vector[b"1", b"2", b"3", b"4", b"5", b"6", b"7", b"8", b"9"];
         
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&test_cases)) {
             let num = *std::vector::borrow(&test_cases, i);
             let expected_bytes = *std::vector::borrow(&expected, i);
@@ -992,7 +980,7 @@ module bluefin_spot::test_utils {
             b"10000000000"
         ];
         
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&powers)) {
             let num = *std::vector::borrow(&powers, i);
             let expected_bytes = *std::vector::borrow(&expected, i);
@@ -1031,7 +1019,7 @@ module bluefin_spot::test_utils {
             b"9999999999"
         ];
         
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&numbers)) {
             let num = *std::vector::borrow(&numbers, i);
             let expected_bytes = *std::vector::borrow(&expected, i);
@@ -1293,7 +1281,7 @@ module bluefin_spot::test_utils {
         let scenario = test_scenario::begin(ADMIN);
         
         // Create a balance with 1000 units
-        let balance = balance::create_for_testing<USDC>(1000);
+        let mut balance = balance::create_for_testing<USDC>(1000);
         
         // Withdraw 300 units
         let withdrawn = utils::withdraw_balance(&mut balance, 300);
@@ -1316,7 +1304,7 @@ module bluefin_spot::test_utils {
         let scenario = test_scenario::begin(ADMIN);
         
         // Create a balance with 1000 units
-        let balance = balance::create_for_testing<USDC>(1000);
+        let mut balance = balance::create_for_testing<USDC>(1000);
         
         // Withdraw 0 units
         let withdrawn = utils::withdraw_balance(&mut balance, 0);
@@ -1339,7 +1327,7 @@ module bluefin_spot::test_utils {
         let scenario = test_scenario::begin(ADMIN);
         
         // Create a balance with 500 units
-        let balance = balance::create_for_testing<USDC>(500);
+        let mut balance = balance::create_for_testing<USDC>(500);
         
         // Withdraw all 500 units
         let withdrawn = utils::withdraw_balance(&mut balance, 500);
@@ -1363,7 +1351,7 @@ module bluefin_spot::test_utils {
         let scenario = test_scenario::begin(ADMIN);
         
         // Create a balance with 100 units
-        let balance = balance::create_for_testing<USDC>(100);
+        let mut balance = balance::create_for_testing<USDC>(100);
         
         // Try to withdraw 200 units (should fail)
         let withdrawn = utils::withdraw_balance(&mut balance, 200);
@@ -1381,7 +1369,7 @@ module bluefin_spot::test_utils {
         let scenario = test_scenario::begin(ADMIN);
         
         // Create a zero balance
-        let balance = balance::zero<USDC>();
+        let mut balance = balance::zero<USDC>();
         
         // Try to withdraw 1 unit (should fail)
         let withdrawn = utils::withdraw_balance(&mut balance, 1);
@@ -1399,7 +1387,7 @@ module bluefin_spot::test_utils {
         let scenario = test_scenario::begin(ADMIN);
         
         // Create a balance with 1000 units
-        let balance = balance::create_for_testing<USDC>(1000);
+        let mut balance = balance::create_for_testing<USDC>(1000);
         
         // Try to withdraw 1001 units (should fail)
         let withdrawn = utils::withdraw_balance(&mut balance, 1001);
@@ -1416,7 +1404,7 @@ module bluefin_spot::test_utils {
         let scenario = test_scenario::begin(ADMIN);
         
         // Create a balance with 1000 units
-        let balance = balance::create_for_testing<USDC>(1000);
+        let mut balance = balance::create_for_testing<USDC>(1000);
         
         // First withdrawal: 200 units
         let withdrawn1 = utils::withdraw_balance(&mut balance, 200);
@@ -1447,11 +1435,11 @@ module bluefin_spot::test_utils {
         let scenario = test_scenario::begin(ADMIN);
         
         // Create a balance with 10 units
-        let balance = balance::create_for_testing<USDC>(10);
+        let mut balance = balance::create_for_testing<USDC>(10);
         
         // Withdraw 1 unit at a time
-        let i = 0;
-        let withdrawn_balances = vector::empty<Balance<USDC>>();
+        let mut i = 0;
+        let mut withdrawn_balances = vector::empty<Balance<USDC>>();
         
         while (i < 10) {
             let withdrawn = utils::withdraw_balance(&mut balance, 1);
@@ -1480,7 +1468,7 @@ module bluefin_spot::test_utils {
         
         // Create a balance with max u64 value
         let max_u64 = 18446744073709551615u64;
-        let balance = balance::create_for_testing<USDC>(max_u64);
+        let mut balance = balance::create_for_testing<USDC>(max_u64);
         
         // Withdraw half
         let half = max_u64 / 2;
@@ -1501,14 +1489,14 @@ module bluefin_spot::test_utils {
         let scenario = test_scenario::begin(ADMIN);
         
         // Test with value 1
-        let balance1 = balance::create_for_testing<USDC>(1);
+        let mut balance1 = balance::create_for_testing<USDC>(1);
         let withdrawn1 = utils::withdraw_balance(&mut balance1, 1);
         assert!(balance::value(&withdrawn1) == 1, 0);
         assert!(balance::value(&balance1) == 0, 1);
         
         // Test with max u32
         let max_u32 = 4294967295u64;
-        let balance2 = balance::create_for_testing<USDC>(max_u32);
+        let mut balance2 = balance::create_for_testing<USDC>(max_u32);
         let withdrawn2 = utils::withdraw_balance(&mut balance2, max_u32);
         assert!(balance::value(&withdrawn2) == max_u32, 2);
         assert!(balance::value(&balance2) == 0, 3);
@@ -1529,12 +1517,12 @@ module bluefin_spot::test_utils {
         // Powers of 2
         let powers_of_2 = vector[1u64, 2u64, 4u64, 8u64, 16u64, 32u64, 64u64, 128u64, 256u64, 512u64, 1024u64];
         
-        let i = 0;
+        let mut i = 0;
         while (i < vector::length(&powers_of_2)) {
             let amount = *vector::borrow(&powers_of_2, i);
             let total = amount * 2; // Create balance with double the amount
             
-            let balance = balance::create_for_testing<USDC>(total);
+            let mut balance = balance::create_for_testing<USDC>(total);
             let withdrawn = utils::withdraw_balance(&mut balance, amount);
             
             assert!(balance::value(&withdrawn) == amount, i);
@@ -1555,14 +1543,14 @@ module bluefin_spot::test_utils {
         let scenario = test_scenario::begin(ADMIN);
         
         // Start with 1000 units
-        let balance = balance::create_for_testing<USDC>(1000);
-        let total_withdrawn = 0u64;
-        let withdrawn_balances = vector::empty<Balance<USDC>>();
+        let mut balance = balance::create_for_testing<USDC>(1000);
+        let mut total_withdrawn = 0u64;
+        let mut withdrawn_balances = vector::empty<Balance<USDC>>();
         
         // Withdraw in decreasing amounts: 400, 300, 200, 100
         let amounts = vector[400u64, 300u64, 200u64, 100u64];
         
-        let i = 0;
+        let mut i = 0;
         while (i < vector::length(&amounts)) {
             let amount = *vector::borrow(&amounts, i);
             let withdrawn = utils::withdraw_balance(&mut balance, amount);
@@ -1594,7 +1582,7 @@ module bluefin_spot::test_utils {
         let scenario = test_scenario::begin(ADMIN);
         
         // Test with SUI type
-        let sui_balance = balance::create_for_testing<USDC>(1000);
+        let mut sui_balance = balance::create_for_testing<USDC>(1000);
         let sui_withdrawn = utils::withdraw_balance(&mut sui_balance, 500);
         assert!(balance::value(&sui_withdrawn) == 500, 0);
         assert!(balance::value(&sui_balance) == 500, 1);

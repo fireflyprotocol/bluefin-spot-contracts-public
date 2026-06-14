@@ -1,16 +1,6 @@
-/*
-  Copyright (c) 2025 Bluefin Labs Inc.
-  Proprietary Smart Contract License – All Rights Reserved.
-
-  This source code is provided for transparency and verification only.
-  Use, modification, reproduction, or redeployment of this code 
-  requires prior written permission from the Bluefin Labs Inc.
-*/
-
 #[test_only]
 module bluefin_spot::test_oracle {
     use sui::test_scenario::{Self};
-    use std::vector;
     use bluefin_spot::oracle::{Self};
     use integer_mate::i32::{Self as MateI32, I32 as MateI32Type};
     use integer_mate::i64::{Self as MateI64};
@@ -64,7 +54,7 @@ module bluefin_spot::test_oracle {
     #[test]
     fun test_initialize_manager_different_timestamps() {
         let timestamps = vector[0u64, 1u64, 1000u64, 999999999u64];
-        let i = 0;
+        let mut i = 0;
         while (i < vector::length(&timestamps)) {
             let timestamp = *vector::borrow(&timestamps, i);
             let manager = oracle::initialize_manager(timestamp);
@@ -327,7 +317,7 @@ module bluefin_spot::test_oracle {
     fun test_update_same_timestamp() {
         let scenario = test_scenario::begin(ADMIN);
         let timestamp = create_test_timestamp();
-        let manager = oracle::initialize_manager(timestamp);
+        let mut manager = oracle::initialize_manager(timestamp);
         let tick = create_test_tick();
         let liquidity = create_test_liquidity();
         
@@ -345,7 +335,7 @@ module bluefin_spot::test_oracle {
         let scenario = test_scenario::begin(ADMIN);
         let init_timestamp = 1000u64;
         let new_timestamp = 2000u64;
-        let manager = oracle::initialize_manager(init_timestamp);
+        let mut manager = oracle::initialize_manager(init_timestamp);
         let tick = create_test_tick();
         let liquidity = create_test_liquidity();
         
@@ -371,7 +361,7 @@ module bluefin_spot::test_oracle {
         let scenario = test_scenario::begin(ADMIN);
         let init_timestamp = 1000u64;
         let new_timestamp = 2000u64;
-        let manager = oracle::initialize_manager(init_timestamp);
+        let mut manager = oracle::initialize_manager(init_timestamp);
         let tick = create_test_tick();
         let liquidity = create_test_liquidity();
         
@@ -395,7 +385,7 @@ module bluefin_spot::test_oracle {
     fun test_grow_basic() {
         let scenario = test_scenario::begin(ADMIN);
         let timestamp = create_test_timestamp();
-        let manager = oracle::initialize_manager(timestamp);
+        let mut manager = oracle::initialize_manager(timestamp);
         
         let (old_cardinality, new_cardinality) = oracle::grow(&mut manager, 5);
         
@@ -412,7 +402,7 @@ module bluefin_spot::test_oracle {
     fun test_grow_no_change_when_smaller() {
         let scenario = test_scenario::begin(ADMIN);
         let timestamp = create_test_timestamp();
-        let manager = oracle::initialize_manager(timestamp);
+        let mut manager = oracle::initialize_manager(timestamp);
         
         // First grow to 5
         oracle::grow(&mut manager, 5);
@@ -431,7 +421,7 @@ module bluefin_spot::test_oracle {
     fun test_grow_multiple_times() {
         let scenario = test_scenario::begin(ADMIN);
         let timestamp = create_test_timestamp();
-        let manager = oracle::initialize_manager(timestamp);
+        let mut manager = oracle::initialize_manager(timestamp);
         
         // Grow multiple times
         oracle::grow(&mut manager, 3);
@@ -448,7 +438,7 @@ module bluefin_spot::test_oracle {
     fun test_grow_zero_cardinality() {
         let scenario = test_scenario::begin(ADMIN);
         let timestamp = create_test_timestamp();
-        let manager = oracle::initialize_manager(timestamp);
+        let mut manager = oracle::initialize_manager(timestamp);
         
         let (old_cardinality, new_cardinality) = oracle::grow(&mut manager, 0);
         
@@ -493,7 +483,7 @@ module bluefin_spot::test_oracle {
         let scenario = test_scenario::begin(ADMIN);
         let init_timestamp = 1000u64;
         let _target_timestamp = 500u64; // Target before init_timestamp to avoid infinite loop
-        let manager = oracle::initialize_manager(init_timestamp);
+        let mut manager = oracle::initialize_manager(init_timestamp);
         let tick = create_test_tick();
         let liquidity = create_test_liquidity();
         
@@ -512,7 +502,7 @@ module bluefin_spot::test_oracle {
     #[test]
     fun test_binary_search_multiple_observations() {
         let scenario = test_scenario::begin(ADMIN);
-        let manager = oracle::initialize_manager(1000u64);
+        let mut manager = oracle::initialize_manager(1000u64);
         let tick = create_test_tick();
         let liquidity = create_test_liquidity();
         
@@ -541,7 +531,7 @@ module bluefin_spot::test_oracle {
     fun test_full_oracle_lifecycle() {
         let scenario = test_scenario::begin(ADMIN);
         let init_timestamp = 1000u64;
-        let manager = oracle::initialize_manager(init_timestamp);
+        let mut manager = oracle::initialize_manager(init_timestamp);
         let tick = create_test_tick();
         let liquidity = create_test_liquidity();
         
@@ -551,7 +541,7 @@ module bluefin_spot::test_oracle {
         
         // 2. Add several observations
         let timestamps = vector[2000u64, 3000u64, 4000u64, 5000u64];
-        let i = 0;
+        let mut i = 0;
         while (i < vector::length(&timestamps)) {
             let timestamp = *vector::borrow(&timestamps, i);
             oracle::update(&mut manager, tick, liquidity, timestamp);
@@ -579,7 +569,7 @@ module bluefin_spot::test_oracle {
     fun test_edge_case_zero_time_delta() {
         let scenario = test_scenario::begin(ADMIN);
         let timestamp = 1000u64;
-        let manager = oracle::initialize_manager(timestamp);
+        let mut manager = oracle::initialize_manager(timestamp);
         let tick = create_test_tick();
         let liquidity = create_test_liquidity();
         
@@ -597,7 +587,7 @@ module bluefin_spot::test_oracle {
     fun test_extreme_values() {
         let scenario = test_scenario::begin(ADMIN);
         let large_timestamp = 1000000000u64; // Large but reasonable timestamp
-        let manager = oracle::initialize_manager(0u64);
+        let mut manager = oracle::initialize_manager(0u64);
         let extreme_tick = MateI32::from(100000u32); // Large but safe tick value
         let large_liquidity = 1000000000000000000u128; // Large liquidity
         
@@ -614,7 +604,7 @@ module bluefin_spot::test_oracle {
     #[test]
     fun test_negative_tick_accumulation() {
         let scenario = test_scenario::begin(ADMIN);
-        let manager = oracle::initialize_manager(1000u64);
+        let mut manager = oracle::initialize_manager(1000u64);
         let negative_tick = create_negative_test_tick();
         let liquidity = create_test_liquidity();
         
@@ -631,7 +621,7 @@ module bluefin_spot::test_oracle {
     #[test]
     fun test_liquidity_per_second_overflow() {
         let scenario = test_scenario::begin(ADMIN);
-        let manager = oracle::initialize_manager(0u64);
+        let mut manager = oracle::initialize_manager(0u64);
         let tick = create_test_tick();
         let min_liquidity = 1u128;
         let large_time = 1000000u64; // Large but safe time delta
@@ -653,7 +643,7 @@ module bluefin_spot::test_oracle {
     #[test]
     fun test_observe_single_interpolation_edge_cases() {
         let scenario = test_scenario::begin(ADMIN);
-        let manager = oracle::initialize_manager(1000u64);
+        let mut manager = oracle::initialize_manager(1000u64);
         let tick = create_test_tick();
         let liquidity = create_test_liquidity();
         
@@ -678,7 +668,7 @@ module bluefin_spot::test_oracle {
     #[test]
     fun test_get_surrounding_observations_past_target() {
         let scenario = test_scenario::begin(ADMIN);
-        let manager = oracle::initialize_manager(1000u64);
+        let mut manager = oracle::initialize_manager(1000u64);
         let tick = create_test_tick();
         let liquidity = create_test_liquidity();
         
@@ -704,7 +694,7 @@ module bluefin_spot::test_oracle {
     #[expected_failure(abort_code = 1014, location = bluefin_spot::oracle)]
     fun test_get_surrounding_observations_invalid_timestamp() {
         let scenario = test_scenario::begin(ADMIN);
-        let manager = oracle::initialize_manager(3000u64);
+        let mut manager = oracle::initialize_manager(3000u64);
         let tick = create_test_tick();
         let liquidity = create_test_liquidity();
         
@@ -722,14 +712,14 @@ module bluefin_spot::test_oracle {
     #[test]
     fun test_binary_search_comprehensive() {
         let scenario = test_scenario::begin(ADMIN);
-        let manager = oracle::initialize_manager(1000u64);
+        let mut manager = oracle::initialize_manager(1000u64);
         let tick = create_test_tick();
         let liquidity = create_test_liquidity();
         
         // Create a full ring buffer of observations
         oracle::grow(&mut manager, 10);
         let timestamps = vector[2000u64, 3000u64, 4000u64, 5000u64, 6000u64, 7000u64, 8000u64, 9000u64, 10000u64];
-        let i = 0;
+        let mut i = 0;
         while (i < vector::length(&timestamps)) {
             let timestamp = *vector::borrow(&timestamps, i);
             oracle::update(&mut manager, tick, liquidity, timestamp);
@@ -750,7 +740,7 @@ module bluefin_spot::test_oracle {
     #[test]
     fun test_binary_search_uninitialized_observations() {
         let scenario = test_scenario::begin(ADMIN);
-        let manager = oracle::initialize_manager(1000u64);
+        let mut manager = oracle::initialize_manager(1000u64);
         let tick = create_test_tick();
         let liquidity = create_test_liquidity();
         
@@ -771,7 +761,7 @@ module bluefin_spot::test_oracle {
     #[test]
     fun test_update_with_cardinality_not_at_boundary() {
         let scenario = test_scenario::begin(ADMIN);
-        let manager = oracle::initialize_manager(1000u64);
+        let mut manager = oracle::initialize_manager(1000u64);
         let tick = create_test_tick();
         let liquidity = create_test_liquidity();
         
@@ -836,7 +826,7 @@ module bluefin_spot::test_oracle {
     #[test]
     fun test_observe_single_right_boundary() {
         let scenario = test_scenario::begin(ADMIN);
-        let manager = oracle::initialize_manager(1000u64);
+        let mut manager = oracle::initialize_manager(1000u64);
         let tick = create_test_tick();
         let liquidity = create_test_liquidity();
         
@@ -858,7 +848,7 @@ module bluefin_spot::test_oracle {
     #[test]
     fun test_circular_buffer_wraparound() {
         let scenario = test_scenario::begin(ADMIN);
-        let manager = oracle::initialize_manager(1000u64);
+        let mut manager = oracle::initialize_manager(1000u64);
         let tick = create_test_tick();
         let liquidity = create_test_liquidity();
         
@@ -902,7 +892,7 @@ module bluefin_spot::test_oracle {
     #[test]
     fun test_complex_interpolation_scenario() {
         let scenario = test_scenario::begin(ADMIN);
-        let manager = oracle::initialize_manager(1000u64);
+        let mut manager = oracle::initialize_manager(1000u64);
         let tick = MateI32::from(1000u32); // Larger tick for more noticeable effects
         let liquidity = 1000000u128;
         
@@ -961,7 +951,7 @@ module bluefin_spot::test_oracle {
     fun test_manager_getters() {
         let scenario = test_scenario::begin(ADMIN);
         let timestamp = create_test_timestamp();
-        let manager = oracle::initialize_manager(timestamp);
+        let mut manager = oracle::initialize_manager(timestamp);
         
         assert!(oracle::observation_index(&manager) == 0, 0);
         assert!(oracle::observation_cardinality(&manager) == 1, 1);

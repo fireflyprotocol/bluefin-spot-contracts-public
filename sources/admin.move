@@ -8,9 +8,6 @@
 */
 
 module bluefin_spot::admin {
-    use sui::object::{Self, UID};
-    use sui::tx_context::{Self, TxContext};
-    use sui::transfer;
     use std::string::{String};
     use sui::clock::{Clock};
     use sui::coin::{Self, Coin};
@@ -22,6 +19,7 @@ module bluefin_spot::admin {
     // local modules
     use bluefin_spot::config::{Self, GlobalConfig};
     use bluefin_spot::pool::{Self, Pool};
+    use bluefin_spot::guardian;
     use bluefin_spot::utils;
     use bluefin_spot::events;
     use bluefin_spot::errors;
@@ -32,12 +30,12 @@ module bluefin_spot::admin {
     //===========================================================//
 
     /// The holder of the cap is the admin of the protocol
-    struct AdminCap has key {
+    public struct AdminCap has key {
         id: UID,
     }
 
     /// The holder of the cap can withdraw protocol fee from the pools
-    struct ProtocolFeeCap has key {
+    public struct ProtocolFeeCap has key {
         id: UID,
     }
 
@@ -112,9 +110,10 @@ module bluefin_spot::admin {
     /// - ctx: Mutable Tx Context of the sender/caller
     #[allow(lint(public_entry))]
     public entry fun claim_protocol_fee<CoinTypeA, CoinTypeB>(_: &ProtocolFeeCap, protocol_config: &GlobalConfig, pool: &mut Pool<CoinTypeA, CoinTypeB>, coin_a_amount: u64, coin_b_amount: u64, destination: address, ctx: &mut TxContext){
-        
+
         // verify version
         config::verify_version(protocol_config);
+        guardian::assert_not_paused(protocol_config);
 
         let protocol_fee_coin_a = pool::get_protocol_fee_for_coin_a(pool);
         let protocol_fee_coin_b = pool::get_protocol_fee_for_coin_b(pool);
@@ -164,17 +163,44 @@ module bluefin_spot::admin {
             );
    }
 
-   /// Updates pool's "is_paused" status
+   /// DEPRECATED. Pool pause/unpause is now controlled by the Guardian role —
+   /// see `pause_pool` / `unpause_pool` below.
+   #[allow(lint(public_entry), unused_type_parameter)]
+   public entry fun update_pool_pause_status<CoinTypeA, CoinTypeB>(_: &AdminCap, _: &GlobalConfig, _: &mut Pool<CoinTypeA, CoinTypeB>, _: bool)
+   {
+        abort errors::depricated()
+   }
+
+   /// Installs or updates the REWARDS_MANAGER emission rate caps (BET-3885).
+   /// Resets the running window sums so a cap change doesn't carry stale
+   /// state across the new policy. Idempotent across re-tunes.
    /// Parameters:
    /// - cap: The AdminCap, ensuring the caller is the current admin.
    /// - protocol_config: mutable Global Config object
-   /// - status: status to be set
+   /// - max_emission_delta_per_window: cap on aggregate reward coin amounts
+   ///   deposited via initialize_pool_reward + update_pool_reward_emission
+   ///   per `emission_window_seconds`.
+   /// - max_duration_extension_per_window: cap on aggregate seconds added
+   ///   via add_seconds_to_reward_emission per `emission_window_seconds`.
+   /// - emission_window_seconds: fixed window length (e.g. 86400 = 24h).
+   /// - clock: sui clock object.
    #[allow(lint(public_entry))]
-   public entry fun update_pool_pause_status<CoinTypeA, CoinTypeB>(_: &AdminCap, protocol_config: &GlobalConfig, pool: &mut Pool<CoinTypeA, CoinTypeB>, status: bool)
-   {
-        // verify version
+   public entry fun update_emission_caps(
+        _: &AdminCap,
+        protocol_config: &mut GlobalConfig,
+        max_emission_delta_per_window: u64,
+        max_duration_extension_per_window: u64,
+        emission_window_seconds: u64,
+        clock: &Clock,
+   ) {
         config::verify_version(protocol_config);
-        pool::update_pause_status(pool, status);
+        config::set_emission_caps(
+            protocol_config,
+            max_emission_delta_per_window,
+            max_duration_extension_per_window,
+            emission_window_seconds,
+            clock,
+        );
    }
 
    /// remove a rewards manager from the global config
@@ -206,11 +232,11 @@ module bluefin_spot::admin {
    /// - clock : sui clock object
    #[allow(lint(public_entry))]
    public entry fun initialize_pool_reward<CoinTypeA, CoinTypeB, RewardCoinType>(
-        protocol_config: &GlobalConfig,
-        pool: &mut Pool<CoinTypeA, CoinTypeB>, 
+        protocol_config: &mut GlobalConfig,
+        pool: &mut Pool<CoinTypeA, CoinTypeB>,
         start_time: u64,
         active_for_seconds: u64,
-        reward_coin: Coin<RewardCoinType>, 
+        reward_coin: Coin<RewardCoinType>,
         reward_coin_symbol: String,
         reward_coin_decimals: u8,
         reward_amount: u64,
@@ -218,16 +244,17 @@ module bluefin_spot::admin {
         ctx: &mut TxContext) {
         // verify version
         config::verify_version(protocol_config);
+        guardian::assert_not_paused(protocol_config);
 
         let is_whitelisted_manager = config::verify_reward_manager(protocol_config, tx_context::sender(ctx));
-        
+
         assert!(is_whitelisted_manager || pool::verify_pool_manager(pool, tx_context::sender(ctx)), errors::not_authorized());
 
         let reward_type = utils::get_type_string<RewardCoinType>();
 
         // if reward type is blue coin, then only whitelisted reward managers are allowed
         assert!(reward_type != constants::blue_reward_type() || is_whitelisted_manager, errors::not_authorized());
-        
+
         assert!(reward_amount == coin::value(&reward_coin), errors::reward_amount_and_provided_balance_do_not_match());
 
         assert!(start_time >  utils::timestamp_seconds(clock),  errors::invalid_timestamp());
@@ -241,11 +268,13 @@ module bluefin_spot::admin {
                 start_time
                 )
             );
-        
+
         pool::update_pool_reward_emission(
+            protocol_config,
             pool,
             coin::into_balance(reward_coin),
             active_for_seconds,
+            clock,
             );
     }
 
@@ -260,20 +289,21 @@ module bluefin_spot::admin {
     /// 
     #[allow(lint(public_entry))]
     public entry fun update_pool_reward_emission<CoinTypeA, CoinTypeB, RewardCoinType>(
-        protocol_config: &GlobalConfig,
-        pool: &mut  Pool<CoinTypeA, CoinTypeB>, 
-        active_for_seconds: u64, 
+        protocol_config: &mut GlobalConfig,
+        pool: &mut  Pool<CoinTypeA, CoinTypeB>,
+        active_for_seconds: u64,
         reward_coin: Coin<RewardCoinType>,
         reward_amount: u64,
-        clock: &Clock, 
+        clock: &Clock,
         ctx: &TxContext) {
 
         config::verify_version(protocol_config);
+        guardian::assert_not_paused(protocol_config);
 
         let is_whitelisted_manager = config::verify_reward_manager(protocol_config, tx_context::sender(ctx));
-        
+
         assert!(is_whitelisted_manager || pool::verify_pool_manager(pool, tx_context::sender(ctx)), errors::not_authorized());
-        
+
         let reward_type = utils::get_type_string<RewardCoinType>();
 
         // if reward type is blue coin, then only whitelisted reward managers are allowed
@@ -284,9 +314,11 @@ module bluefin_spot::admin {
         pool::update_reward_infos(pool,  utils::timestamp_seconds(clock));
 
          pool::update_pool_reward_emission(
+            protocol_config,
             pool,
             coin::into_balance(reward_coin),
             active_for_seconds,
+            clock,
         );
     }
 
@@ -301,18 +333,19 @@ module bluefin_spot::admin {
     /// 
     #[allow(lint(public_entry))]
     public fun add_seconds_to_reward_emission<CoinTypeA, CoinTypeB, RewardCoinType>(
-        protocol_config: &GlobalConfig,
-        pool: &mut Pool<CoinTypeA, CoinTypeB>, 
-        seconds_to_add: u64, 
-        clock: &Clock, 
+        protocol_config: &mut GlobalConfig,
+        pool: &mut Pool<CoinTypeA, CoinTypeB>,
+        seconds_to_add: u64,
+        clock: &Clock,
         ctx: &TxContext) {
 
         config::verify_version(protocol_config);
+        guardian::assert_not_paused(protocol_config);
 
         let is_whitelisted_manager = config::verify_reward_manager(protocol_config, tx_context::sender(ctx));
-        
+
         assert!(is_whitelisted_manager || pool::verify_pool_manager(pool, tx_context::sender(ctx)), errors::not_authorized());
-        
+
         let reward_type = utils::get_type_string<RewardCoinType>();
 
         // if reward type is blue coin, then only whitelisted reward managers are allowed
@@ -320,9 +353,11 @@ module bluefin_spot::admin {
 
         pool::update_reward_infos(pool,  utils::timestamp_seconds(clock));
         pool::update_pool_reward_emission(
-            pool, 
+            protocol_config,
+            pool,
             balance::zero<RewardCoinType>(),
             seconds_to_add,
+            clock,
         );
     }
 
@@ -463,12 +498,13 @@ module bluefin_spot::admin {
      #[allow(lint(public_entry))]
     public entry fun claim_pool_creation_fee<CoinTypeFee>(
         _: &ProtocolFeeCap,
-        protocol_config: &mut GlobalConfig, 
-        amount: u64, 
+        protocol_config: &mut GlobalConfig,
+        amount: u64,
         destination: address,
         ctx: &mut TxContext)
     {
         config::verify_version(protocol_config);
+        guardian::assert_not_paused(protocol_config);
 
         let uid = config::get_config_id(protocol_config);
         let fee_coin_type = utils::get_type_string<CoinTypeFee>();
@@ -506,7 +542,8 @@ module bluefin_spot::admin {
         reward_coin: Coin<RewardCoinType>) {
 
         config::verify_version(protocol_config);
-        
+        guardian::assert_not_paused(protocol_config);
+
         pool::increase_reward_coin_reserves(pool, coin::into_balance(reward_coin));
     }
 
@@ -521,6 +558,66 @@ module bluefin_spot::admin {
     entry fun set_pool_icon_url<CoinTypeA, CoinTypeB>(_: &AdminCap, protocol_config: &GlobalConfig, pool: &mut Pool<CoinTypeA, CoinTypeB>, icon_url: String){
         config::verify_version(protocol_config);
         pool::set_pool_icon_url(pool, icon_url);
+    }
+
+    //===========================================================//
+    //                   Guardian Admin Entries                  //
+    //===========================================================//
+
+    /// One-shot: mints the initial `GuardianCap`, transfers it to `initial_guardian`,
+    /// and attaches a fresh `GuardianState` to `GlobalConfig`. The deployer is
+    /// usually set as the initial guardian; ops rotates to a KMS address via
+    /// `set_guardian` below.
+    #[allow(lint(public_entry))]
+    public entry fun init_guardian(
+        _: &AdminCap,
+        protocol_config: &mut GlobalConfig,
+        initial_guardian: address,
+        ctx: &mut TxContext,
+    ) {
+        config::verify_version(protocol_config);
+        guardian::init_state(protocol_config, initial_guardian, ctx);
+    }
+
+    /// Rotates the guardian. AdminCap-gated, immediate. Mints a fresh
+    /// `GuardianCap`, transfers it to `new_guardian`, and invalidates the
+    /// previous cap. A 24h timelock will gate this entry in a follow-up that
+    /// introduces a generic admin-action timelock primitive across all
+    /// selected AdminCap operations.
+    #[allow(lint(public_entry))]
+    public entry fun set_guardian(
+        _: &AdminCap,
+        protocol_config: &mut GlobalConfig,
+        new_guardian: address,
+        ctx: &mut TxContext,
+    ) {
+        config::verify_version(protocol_config);
+        guardian::set_guardian(protocol_config, new_guardian, ctx);
+    }
+
+    /// Pauses a single pool. Caller must present the currently-active `GuardianCap`.
+    /// While the pool is paused, every fund-moving pool entry reverts.
+    #[allow(lint(public_entry))]
+    public entry fun pause_pool<CoinTypeA, CoinTypeB>(
+        protocol_config: &GlobalConfig,
+        pool: &mut Pool<CoinTypeA, CoinTypeB>,
+        cap: &guardian::GuardianCap,
+    ) {
+        config::verify_version(protocol_config);
+        guardian::assert_is_guardian(protocol_config, cap);
+        pool::update_pause_status(pool, true);
+    }
+
+    /// Unpauses a single pool. Caller must present the currently-active `GuardianCap`.
+    #[allow(lint(public_entry))]
+    public entry fun unpause_pool<CoinTypeA, CoinTypeB>(
+        protocol_config: &GlobalConfig,
+        pool: &mut Pool<CoinTypeA, CoinTypeB>,
+        cap: &guardian::GuardianCap,
+    ) {
+        config::verify_version(protocol_config);
+        guardian::assert_is_guardian(protocol_config, cap);
+        pool::update_pause_status(pool, false);
     }
 
 

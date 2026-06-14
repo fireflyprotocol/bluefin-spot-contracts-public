@@ -1,18 +1,7 @@
-/*
-  Copyright (c) 2025 Bluefin Labs Inc.
-  Proprietary Smart Contract License – All Rights Reserved.
-
-  This source code is provided for transparency and verification only.
-  Use, modification, reproduction, or redeployment of this code 
-  requires prior written permission from the Bluefin Labs Inc.
-*/
-
 #[test_only]
 module bluefin_spot::test_tick {
-    use sui::object::{Self, ID};
     use sui::test_scenario::{Self, Scenario};
     use sui::table;
-    use std::vector;
     use bluefin_spot::tick::{Self, TickManager, TickInfo};
     use integer_mate::i32::{Self as MateI32, I32 as MateI32Type};
     use integer_mate::i64::{Self as MateI64};
@@ -34,8 +23,8 @@ module bluefin_spot::test_tick {
     }
 
     fun create_test_reward_growths(count: u64): vector<u128> {
-        let rewards = vector::empty<u128>();
-        let i = 0;
+        let mut rewards = vector::empty<u128>();
+        let mut i = 0;
         while (i < count) {
             vector::push_back(&mut rewards, (i as u128) * 1000);
             i = i + 1;
@@ -49,7 +38,7 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_initialize_manager_basic() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         
         let manager = create_test_manager(&mut scenario, 1);
         assert!(tick::tick_spacing(&manager) == 1, 0);
@@ -60,10 +49,10 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_initialize_manager_different_spacings() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         
         let spacings = vector[1u32, 2u32, 5u32, 10u32, 60u32, 200u32];
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&spacings)) {
             let spacing = *std::vector::borrow(&spacings, i);
             let manager = create_test_manager(&mut scenario, spacing);
@@ -92,7 +81,7 @@ module bluefin_spot::test_tick {
     #[test]
     fun test_create_tick_positive_indices() {
         let positive_indices = vector[1u32, 10u32, 100u32, 1000u32];
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&positive_indices)) {
             let index_value = *std::vector::borrow(&positive_indices, i);
             let index = MateI32::from(index_value);
@@ -109,7 +98,7 @@ module bluefin_spot::test_tick {
     #[test]
     fun test_create_tick_negative_indices() {
         let negative_indices = vector[1u32, 10u32, 100u32, 1000u32];
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&negative_indices)) {
             let index_value = *std::vector::borrow(&negative_indices, i);
             let index = MateI32::neg_from(index_value);
@@ -132,7 +121,7 @@ module bluefin_spot::test_tick {
             MateI32::neg_from(443636u32)  // Near min tick
         ];
         
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&boundary_indices)) {
             let index = *std::vector::borrow(&boundary_indices, i);
             let tick_info = tick::create_tick(index);
@@ -151,9 +140,9 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_get_mutable_tick_from_table_new_tick() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let ctx = test_scenario::ctx(&mut scenario);
-        let ticks = table::new<MateI32Type, TickInfo>(ctx);
+        let mut ticks = table::new<MateI32Type, TickInfo>(ctx);
         
         let index = MateI32::from(100u32);
         let tick_ref = tick::get_mutable_tick_from_table(&mut ticks, index);
@@ -168,9 +157,9 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_get_mutable_tick_from_table_existing_tick() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let ctx = test_scenario::ctx(&mut scenario);
-        let ticks = table::new<MateI32Type, TickInfo>(ctx);
+        let mut ticks = table::new<MateI32Type, TickInfo>(ctx);
         
         let index = MateI32::from(100u32);
         
@@ -188,8 +177,8 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_get_mutable_tick_from_manager() {
-        let scenario = test_scenario::begin(ADMIN);
-        let manager = create_test_manager(&mut scenario, 1);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut manager = create_test_manager(&mut scenario, 1);
         
         let index = MateI32::from(50u32);
         let tick_ref = tick::get_mutable_tick_from_manager(&mut manager, index);
@@ -203,8 +192,8 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_is_tick_initialized() {
-        let scenario = test_scenario::begin(ADMIN);
-        let manager = create_test_manager(&mut scenario, 1);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut manager = create_test_manager(&mut scenario, 1);
         
         let index = MateI32::from(42u32);
         
@@ -227,8 +216,8 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_update_new_tick_below_current() {
-        let scenario = test_scenario::begin(ADMIN);
-        let manager = create_test_manager(&mut scenario, 1);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut manager = create_test_manager(&mut scenario, 1);
         
         let tick_index = MateI32::from(10u32);
         let current_tick = MateI32::from(20u32);
@@ -265,8 +254,8 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_update_new_tick_above_current() {
-        let scenario = test_scenario::begin(ADMIN);
-        let manager = create_test_manager(&mut scenario, 1);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut manager = create_test_manager(&mut scenario, 1);
         
         let tick_index = MateI32::from(30u32);
         let current_tick = MateI32::from(20u32);
@@ -301,8 +290,8 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_update_existing_tick_add_liquidity() {
-        let scenario = test_scenario::begin(ADMIN);
-        let manager = create_test_manager(&mut scenario, 1);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut manager = create_test_manager(&mut scenario, 1);
         
         let tick_index = MateI32::from(15u32);
         let current_tick = MateI32::from(20u32);
@@ -334,8 +323,8 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_update_remove_all_liquidity() {
-        let scenario = test_scenario::begin(ADMIN);
-        let manager = create_test_manager(&mut scenario, 1);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut manager = create_test_manager(&mut scenario, 1);
         
         let tick_index = MateI32::from(25u32);
         let current_tick = MateI32::from(20u32);
@@ -367,8 +356,8 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_update_upper_vs_lower_tick() {
-        let scenario = test_scenario::begin(ADMIN);
-        let manager = create_test_manager(&mut scenario, 1);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut manager = create_test_manager(&mut scenario, 1);
         
         let tick_index = MateI32::from(15u32);
         let current_tick = MateI32::from(20u32);
@@ -387,7 +376,7 @@ module bluefin_spot::test_tick {
         
         // Reset the manager
         tick::destroy_manager_for_testing(manager);
-        let manager = create_test_manager(&mut scenario, 1);
+        let mut manager = create_test_manager(&mut scenario, 1);
         
         // Test as upper tick (upper = true)
         tick::update(
@@ -411,8 +400,8 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_cross_basic() {
-        let scenario = test_scenario::begin(ADMIN);
-        let manager = create_test_manager(&mut scenario, 1);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut manager = create_test_manager(&mut scenario, 1);
         
         let tick_index = MateI32::from(10u32);
         let current_tick = MateI32::from(20u32);
@@ -448,8 +437,8 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_cross_updates_outside_values() {
-        let scenario = test_scenario::begin(ADMIN);
-        let manager = create_test_manager(&mut scenario, 1);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut manager = create_test_manager(&mut scenario, 1);
         
         let tick_index = MateI32::from(5u32);
         let current_tick = MateI32::from(20u32);
@@ -490,7 +479,7 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_get_fee_and_reward_growths_outside_uninitialized() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let manager = create_test_manager(&mut scenario, 1);
         
         let tick_index = MateI32::from(100u32);
@@ -508,8 +497,8 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_get_fee_and_reward_growths_outside_initialized() {
-        let scenario = test_scenario::begin(ADMIN);
-        let manager = create_test_manager(&mut scenario, 1);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut manager = create_test_manager(&mut scenario, 1);
         
         let tick_index = MateI32::from(15u32);
         let current_tick = MateI32::from(20u32);
@@ -536,8 +525,8 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_get_fee_and_reward_growths_inside_current_below_range() {
-        let scenario = test_scenario::begin(ADMIN);
-        let manager = create_test_manager(&mut scenario, 1);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut manager = create_test_manager(&mut scenario, 1);
         
         let lower_tick = MateI32::from(10u32);
         let upper_tick = MateI32::from(30u32);
@@ -570,8 +559,8 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_get_fee_and_reward_growths_inside_current_in_range() {
-        let scenario = test_scenario::begin(ADMIN);
-        let manager = create_test_manager(&mut scenario, 1);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut manager = create_test_manager(&mut scenario, 1);
         
         let lower_tick = MateI32::from(10u32);
         let upper_tick = MateI32::from(30u32);
@@ -604,8 +593,8 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_get_fee_and_reward_growths_inside_current_above_range() {
-        let scenario = test_scenario::begin(ADMIN);
-        let manager = create_test_manager(&mut scenario, 1);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut manager = create_test_manager(&mut scenario, 1);
         
         let lower_tick = MateI32::from(10u32);
         let upper_tick = MateI32::from(30u32);
@@ -642,7 +631,7 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_fetch_provided_ticks_empty() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let manager = create_test_manager(&mut scenario, 1);
         
         let empty_ticks = vector::empty<u32>();
@@ -656,7 +645,7 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_fetch_provided_ticks_uninitialized() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let manager = create_test_manager(&mut scenario, 1);
         
         let tick_indices = vector[10u32, 20u32, 30u32];
@@ -671,15 +660,15 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_fetch_provided_ticks_initialized() {
-        let scenario = test_scenario::begin(ADMIN);
-        let manager = create_test_manager(&mut scenario, 1);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut manager = create_test_manager(&mut scenario, 1);
         
         let tick_indices = vector[10u32, 20u32, 30u32];
         let dummy_id = create_dummy_id();
         let reward_growths = create_test_reward_growths(1);
         
         // Initialize some ticks
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&tick_indices)) {
             let tick_value = *std::vector::borrow(&tick_indices, i);
             let tick_index = MateI32::from(tick_value);
@@ -701,8 +690,8 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_fetch_provided_ticks_mixed() {
-        let scenario = test_scenario::begin(ADMIN);
-        let manager = create_test_manager(&mut scenario, 1);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut manager = create_test_manager(&mut scenario, 1);
         
         let tick_indices = vector[10u32, 20u32, 30u32, 40u32];
         let dummy_id = create_dummy_id();
@@ -733,7 +722,7 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_bitmap_access() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let manager = create_test_manager(&mut scenario, 1);
         
         let bitmap_ref = tick::bitmap(&manager);
@@ -746,8 +735,8 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_mutable_bitmap_access() {
-        let scenario = test_scenario::begin(ADMIN);
-        let manager = create_test_manager(&mut scenario, 1);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut manager = create_test_manager(&mut scenario, 1);
         
         let bitmap_ref = tick::mutable_bitmap(&mut manager);
         // Should be able to access mutable bitmap
@@ -763,8 +752,8 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_remove_existing_tick() {
-        let scenario = test_scenario::begin(ADMIN);
-        let manager = create_test_manager(&mut scenario, 1);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut manager = create_test_manager(&mut scenario, 1);
         
         let tick_index = MateI32::from(25u32);
         let dummy_id = create_dummy_id();
@@ -791,7 +780,7 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_remove_nonexistent_tick() {
-        let scenario = test_scenario::begin(ADMIN);
+        let mut scenario = test_scenario::begin(ADMIN);
         let manager = create_test_manager(&mut scenario, 1);
         
         let tick_index = MateI32::from(99u32);
@@ -812,8 +801,8 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_full_tick_lifecycle() {
-        let scenario = test_scenario::begin(ADMIN);
-        let manager = create_test_manager(&mut scenario, 10);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut manager = create_test_manager(&mut scenario, 10);
         
         let tick_index = MateI32::from(100u32);
         let current_tick = MateI32::from(50u32);
@@ -864,8 +853,8 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_multiple_ticks_interaction() {
-        let scenario = test_scenario::begin(ADMIN);
-        let manager = create_test_manager(&mut scenario, 1);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut manager = create_test_manager(&mut scenario, 1);
         
         let tick_indices = vector[10u32, 20u32, 30u32];
         let current_tick = MateI32::from(25u32);
@@ -873,7 +862,7 @@ module bluefin_spot::test_tick {
         let reward_growths = create_test_reward_growths(1);
         
         // Initialize multiple ticks
-        let i = 0;
+        let mut i = 0;
         while (i < std::vector::length(&tick_indices)) {
             let tick_value = *std::vector::borrow(&tick_indices, i);
             let tick_index = MateI32::from(tick_value);
@@ -910,8 +899,8 @@ module bluefin_spot::test_tick {
 
     #[test]
     fun test_reward_growths_edge_cases() {
-        let scenario = test_scenario::begin(ADMIN);
-        let manager = create_test_manager(&mut scenario, 1);
+        let mut scenario = test_scenario::begin(ADMIN);
+        let mut manager = create_test_manager(&mut scenario, 1);
         
         let tick_index = MateI32::from(15u32);
         let current_tick = MateI32::from(20u32);
