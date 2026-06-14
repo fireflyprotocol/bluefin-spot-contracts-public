@@ -11,12 +11,9 @@ module bluefin_spot::utils {
     use std::string::{Self, String};
     use sui::clock::{Self, Clock};
     use sui::coin::{Self, Coin};
-    use sui::tx_context::{TxContext};
     use sui::balance::{Self, Balance};
     use std::type_name;
     use std::ascii;
-    use sui::transfer;
-    use std::vector;
 
     use bluefin_spot::errors;
     use bluefin_spot::constants;
@@ -66,7 +63,7 @@ module bluefin_spot::utils {
     }
 
     /// Deposits the provided amount of `b` balance into `a` and reutrns the residual `b` balance
-    public fun deposit_balance<T>(a: &mut Balance<T>,  b: Balance<T>, amount: u64): Balance<T> {
+    public fun deposit_balance<T>(a: &mut Balance<T>,  mut b: Balance<T>, amount: u64): Balance<T> {
 
         let value = balance::value(&b);
 
@@ -93,12 +90,12 @@ module bluefin_spot::utils {
     }
 
     /// Converts u128 to string
-    public fun u128_to_string(num: u128) : String {
+    public fun u128_to_string(mut num: u128) : String {
         if (num == 0) {
             return string::utf8(b"0")
         };
 
-        let vec = vector::empty<u8>();
+        let mut vec = vector::empty<u8>();
         while (num > 0) {
             let digit = ((num % 10) as u8);
             num = num / 10;

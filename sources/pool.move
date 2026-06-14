@@ -9,20 +9,17 @@
 
 /// Module: pool
 module bluefin_spot::pool {
-    use sui::object::{Self, UID, ID};
     use sui::balance::{Self, Balance};
-    use sui::tx_context::{Self,TxContext};
     use std::string::{Self, String};
     use sui::clock::{Clock};
-    use sui::transfer;
     use std::u64;
-    use std::vector;
     use sui::event::emit;
     use sui::dynamic_field as field;
 
     // local modules
     use bluefin_spot::constants;
     use bluefin_spot::config::{Self, GlobalConfig};
+    use bluefin_spot::guardian;
     use bluefin_spot::position::{Self, Position};
     use bluefin_spot::tick::{Self, TickManager, TickInfo};
     use bluefin_spot::oracle::{Self, ObservationManager};
@@ -44,7 +41,6 @@ module bluefin_spot::pool {
     use bluefin_spot::i128H;
 
     // friend modules
-    friend bluefin_spot::admin;
     
     // ==== Constants ==== //
     const DEFAULT_POOL_ICON_URL: vector<u8> = b"https://bluefin.io/images/nfts/default.gif";
@@ -54,7 +50,7 @@ module bluefin_spot::pool {
     //===========================================================//
 
     /// Represents a pool
-    struct Pool<phantom CoinTypeA, phantom CoinTypeB> has key, store {
+    public struct Pool<phantom CoinTypeA, phantom CoinTypeB> has key, store {
         // Id of the pool
         id: UID,
         // The name of the pool
@@ -98,7 +94,7 @@ module bluefin_spot::pool {
     }
 
     /// Represents reward configs inside a pool
-    struct PoolRewardInfo has copy, drop, store {
+    public struct PoolRewardInfo has copy, drop, store {
         // symbol of reward coin
         reward_coin_symbol: String,
         // decimals of the reward coin
@@ -120,7 +116,7 @@ module bluefin_spot::pool {
     }
 
     /// Represents a swap result
-    struct SwapResult has copy, drop {
+    public struct SwapResult has copy, drop {
         a2b: bool,
         by_amount_in: bool,
         amount_specified: u64,
@@ -139,7 +135,7 @@ module bluefin_spot::pool {
         step_results: vector<SwapStepResult>,
     }
 
-    struct SwapStepResult has copy, drop, store {
+    public struct SwapStepResult has copy, drop, store {
         tick_index_next: I32,
         initialized: bool,
         sqrt_price_start: u128,
@@ -151,7 +147,7 @@ module bluefin_spot::pool {
     }
 
 
-    struct FlashSwapReceipt<phantom CoinTypeA, phantom CoinTypeB> {
+    public struct FlashSwapReceipt<phantom CoinTypeA, phantom CoinTypeB> {
         pool_id: ID,
         a2b: bool,
         pay_amount: u64,
@@ -164,22 +160,22 @@ module bluefin_spot::pool {
     //===========================================================//
 
 
-    public (friend) fun set_protocol_fee_amount<CoinTypeA, CoinTypeB>(pool: &mut Pool<CoinTypeA,CoinTypeB>, coin_a: u64, coin_b: u64){
+    public(package) fun set_protocol_fee_amount<CoinTypeA, CoinTypeB>(pool: &mut Pool<CoinTypeA,CoinTypeB>, coin_a: u64, coin_b: u64){
         pool.protocol_fee_coin_a = coin_a;
         pool.protocol_fee_coin_b = coin_b;
     }
 
-    public (friend) fun withdraw_balances<CoinTypeA, CoinTypeB>(pool: &mut Pool<CoinTypeA,CoinTypeB>, coin_a_amount: u64, coin_b_amount: u64): (Balance<CoinTypeA>, Balance<CoinTypeB>) {
+    public(package) fun withdraw_balances<CoinTypeA, CoinTypeB>(pool: &mut Pool<CoinTypeA,CoinTypeB>, coin_a_amount: u64, coin_b_amount: u64): (Balance<CoinTypeA>, Balance<CoinTypeB>) {
         (utils::withdraw_balance<CoinTypeA>(&mut pool.coin_a, coin_a_amount), utils::withdraw_balance<CoinTypeB>(&mut pool.coin_b, coin_b_amount))
     }
 
-    public (friend) fun increase_sequence_number<CoinTypeA, CoinTypeB>(pool: &mut Pool<CoinTypeA,CoinTypeB>): u128 {
+    public(package) fun increase_sequence_number<CoinTypeA, CoinTypeB>(pool: &mut Pool<CoinTypeA,CoinTypeB>): u128 {
         pool.sequence_number = pool.sequence_number + 1;
         pool.sequence_number
     }
     
 
-    public (friend) fun add_reward_info<CoinTypeA, CoinTypeB, RewardCoinType>(
+    public(package) fun add_reward_info<CoinTypeA, CoinTypeB, RewardCoinType>(
         pool: &mut Pool<CoinTypeA, CoinTypeB>, 
         pool_reward_info: PoolRewardInfo) {
             field::add<String, Balance<RewardCoinType>>(
@@ -191,12 +187,28 @@ module bluefin_spot::pool {
         }
 
     
-    public (friend) fun update_pool_reward_emission<CoinTypeA, CoinTypeB, RewardCoinType>(
+    public(package) fun update_pool_reward_emission<CoinTypeA, CoinTypeB, RewardCoinType>(
+        protocol_config: &mut GlobalConfig,
         pool: &mut Pool<CoinTypeA, CoinTypeB>,
         balance: Balance<RewardCoinType>,
-        active_for_seconds: u64
+        active_for_seconds: u64,
+        clock: &Clock,
         ) {
-        
+
+        // BET-3885: single chokepoint for the REWARDS_MANAGER rate caps.
+        // `balance > 0` covers initialize_pool_reward + update_pool_reward_emission
+        // (delta cap on coins newly deposited). `balance == 0` is the
+        // add_seconds_to_reward_emission path (duration cap on seconds added).
+        // initialize / update legitimately pass `active_for_seconds` values
+        // (e.g. 14d = 1,209,600s) that would trip the duration cap, so the
+        // dispatch must be on balance.value, not on active_for_seconds.
+        let delta = balance::value<RewardCoinType>(&balance);
+        if (delta > 0) {
+            config::enforce_emission_delta_cap(protocol_config, clock, delta);
+        } else {
+            config::enforce_duration_extension_cap(protocol_config, clock, active_for_seconds);
+        };
+
         let pool_id = object::id(pool);
 
         let reward_info_index = find_reward_info_index<CoinTypeA, CoinTypeB, RewardCoinType>(pool);
@@ -204,41 +216,41 @@ module bluefin_spot::pool {
             &mut pool.reward_infos, reward_info_index);
 
         let new_end_time = reward_info.ended_at_seconds + active_for_seconds;
-        
+
         assert!(new_end_time > reward_info.last_update_time, errors::invalid_last_update_time());
-    
-       
+
+
         reward_info.total_reward = reward_info.total_reward + balance::value<RewardCoinType>(&balance);
-       
+
         reward_info.ended_at_seconds = new_end_time;
         reward_info.reward_per_seconds = full_math_u128::mul_div_floor((
             (reward_info.total_reward - reward_info.total_reward_allocated) as u128), (constants::q64() as u128), ((reward_info.ended_at_seconds - reward_info.last_update_time) as u128));
 
-        
-        
+
+
         balance::join<RewardCoinType>(
             field::borrow_mut< String ,Balance<RewardCoinType>>
             (&mut pool.id, utils::get_type_string<RewardCoinType>()), balance);
-    
-        
+
+
         pool.sequence_number = pool.sequence_number + 1;
 
         events::emit_update_pool_reward_emission_event(
             pool_id,
             reward_info.reward_coin_symbol,
             reward_info.reward_coin_type,
-            reward_info.reward_coin_decimals, 
-            reward_info.total_reward, 
-            reward_info.ended_at_seconds, 
+            reward_info.reward_coin_decimals,
+            reward_info.total_reward,
+            reward_info.ended_at_seconds,
             reward_info.last_update_time,
             reward_info.reward_per_seconds,
             pool.sequence_number
         );
     }
 
-    public (friend) fun update_reward_infos<CoinTypeA, CoinTypeB>(pool: &mut Pool<CoinTypeA, CoinTypeB>, current_timestamp_seconds: u64) : vector<u128> {
-        let reward_growth_globals = vector::empty<u128>();
-        let current_index = 0;
+    public(package) fun update_reward_infos<CoinTypeA, CoinTypeB>(pool: &mut Pool<CoinTypeA, CoinTypeB>, current_timestamp_seconds: u64) : vector<u128> {
+        let mut reward_growth_globals = vector::empty<u128>();
+        let mut current_index = 0;
         while (current_index < vector::length<PoolRewardInfo>(&pool.reward_infos)) {
             let reward_info = vector::borrow_mut<PoolRewardInfo>(&mut pool.reward_infos, current_index);
             current_index = current_index + 1;
@@ -262,7 +274,7 @@ module bluefin_spot::pool {
         reward_growth_globals
     }
 
-    public (friend) fun update_pause_status<CoinTypeA, CoinTypeB>(pool: &mut Pool<CoinTypeA,CoinTypeB>, status: bool){
+    public(package) fun update_pause_status<CoinTypeA, CoinTypeB>(pool: &mut Pool<CoinTypeA,CoinTypeB>, status: bool){
         pool.is_paused = status;
 
         pool.sequence_number = pool.sequence_number + 1;
@@ -276,12 +288,12 @@ module bluefin_spot::pool {
     }
 
     
-    public (friend) fun set_protocol_fee_share<CoinTypeA, CoinTypeB>(pool: &mut Pool<CoinTypeA, CoinTypeB>, protocol_fee_share: u64){
+    public(package) fun set_protocol_fee_share<CoinTypeA, CoinTypeB>(pool: &mut Pool<CoinTypeA, CoinTypeB>, protocol_fee_share: u64){
             pool.protocol_fee_share = protocol_fee_share;
     }
 
     /// A friend function that allows the admin to increase the number of observations stored
-    public (friend) fun increase_observation_cardinality_next<CoinTypeA, CoinTypeB>(pool: &mut Pool<CoinTypeA, CoinTypeB>, value: u64){
+    public(package) fun increase_observation_cardinality_next<CoinTypeA, CoinTypeB>(pool: &mut Pool<CoinTypeA, CoinTypeB>, value: u64){
         let(previous, current) =  oracle::grow(&mut pool.observations_manager, value);
         increase_sequence_number(pool);
         events::emit_observation_cardinality_updated_event(
@@ -293,7 +305,7 @@ module bluefin_spot::pool {
     }
 
     /// A friend function that allows admin to add reward coins to a pool with out increasing its total reward supply
-    public (friend) fun increase_reward_coin_reserves<CoinTypeA, CoinTypeB, RewardCoinType>(
+    public(package) fun increase_reward_coin_reserves<CoinTypeA, CoinTypeB, RewardCoinType>(
         pool: &mut Pool<CoinTypeA, CoinTypeB>, 
         balance: Balance<RewardCoinType> ){
             
@@ -324,7 +336,7 @@ module bluefin_spot::pool {
     }
 
     /// A friend function that allows the admin to update the icon url of a pool
-    public (friend)fun set_pool_icon_url<CoinTypeA, CoinTypeB>(pool: &mut Pool<CoinTypeA, CoinTypeB>, icon_url: String){
+    public(package)fun set_pool_icon_url<CoinTypeA, CoinTypeB>(pool: &mut Pool<CoinTypeA, CoinTypeB>, icon_url: String){
         assert!(pool.icon_url != icon_url, errors::same_value_provided());
         pool.icon_url = icon_url;
 
@@ -342,25 +354,38 @@ module bluefin_spot::pool {
     //                      Public Functions                     //
     //===========================================================//
 
+    /// Aborts if either the protocol or the specific pool is paused.
+    /// Called by every fund-moving pool entry; consolidates the two-line
+    /// `guardian::assert_not_paused + assert!(!pool.is_paused, ...)` pattern.
+    public fun assert_pool_active<CoinTypeA, CoinTypeB>(
+        protocol_config: &GlobalConfig,
+        pool: &Pool<CoinTypeA, CoinTypeB>,
+    ) {
+        guardian::assert_not_paused(protocol_config);
+        assert!(!pool.is_paused, errors::pool_is_paused());
+    }
+
 
     #[allow(lint(share_owned))]
     public fun create_pool<CoinTypeA, CoinTypeB, CoinTypeFee>(
         clock: &Clock,
         protocol_config: &mut GlobalConfig,
-        pool_name: vector<u8>, 
+        pool_name: vector<u8>,
         icon_url: vector<u8>,
-        coin_a_symbol: vector<u8>, 
-        coin_a_decimals: u8, 
-        coin_a_url: vector<u8>, 
-        coin_b_symbol: vector<u8>, 
-        coin_b_decimals: u8, 
-        coin_b_url: vector<u8>, 
+        coin_a_symbol: vector<u8>,
+        coin_a_decimals: u8,
+        coin_a_url: vector<u8>,
+        coin_b_symbol: vector<u8>,
+        coin_b_decimals: u8,
+        coin_b_url: vector<u8>,
         tick_spacing: u32,
         fee_rate: u64,
         current_sqrt_price: u128,
         creation_fee: Balance<CoinTypeFee>,
         ctx: &mut TxContext): ID {
-        
+
+        guardian::assert_not_paused(protocol_config);
+
         // create pool
         let pool = create_pool_internal<CoinTypeA, CoinTypeB>(
             clock,
@@ -416,8 +441,10 @@ module bluefin_spot::pool {
         is_fixed_a: bool,
         ctx: &mut TxContext): (ID, Position,  u64, u64, Balance<CoinTypeA>, Balance<CoinTypeB>) {
 
+        guardian::assert_not_paused(protocol_config);
+
         // create pool
-        let pool = create_pool_internal<CoinTypeA, CoinTypeB>(
+        let mut pool = create_pool_internal<CoinTypeA, CoinTypeB>(
             clock,
             protocol_config,
             pool_name,
@@ -442,7 +469,7 @@ module bluefin_spot::pool {
 
 
         // open position
-        let position = open_position(protocol_config, &mut pool, lower_tick_bits, upper_tick_bits, ctx);
+        let mut position = open_position(protocol_config, &mut pool, lower_tick_bits, upper_tick_bits, ctx);
 
 
         let (coin_a_provided, coin_b_provided, balance_token_a, balance_token_b) = add_liquidity_with_fixed_amount<CoinTypeA, CoinTypeB>(
@@ -480,7 +507,9 @@ module bluefin_spot::pool {
         current_sqrt_price: u128,
         creation_fee: Balance<CoinTypeFee>,
         ctx: &mut TxContext): Pool<CoinTypeA, CoinTypeB> {
-        
+
+        guardian::assert_not_paused(protocol_config);
+
         // create pool
         let pool = create_pool_internal<CoinTypeA, CoinTypeB>(
             clock,
@@ -545,7 +574,7 @@ module bluefin_spot::pool {
         assert!(object::id(pool) == position::pool_id(position), errors::position_does_not_belong_to_pool());
 
         // ensure pool is not paused
-        assert!(!pool.is_paused, errors::pool_is_paused());
+        assert_pool_active(protocol_config, pool);
 
         // ensure there is no flash swap in progress
         assert!(!is_flash_swap_in_progress(&pool.id), errors::flash_swap_in_progress());
@@ -612,8 +641,8 @@ module bluefin_spot::pool {
         protocol_config: &GlobalConfig,
         pool: &mut Pool<CoinTypeA, CoinTypeB>, 
         position: &mut Position,
-        balance_a: Balance<CoinTypeA>,
-        balance_b: Balance<CoinTypeB>,
+        mut balance_a: Balance<CoinTypeA>,
+        mut balance_b: Balance<CoinTypeB>,
         liquidity: u128,
     ) : (u64, u64, Balance<CoinTypeA>, Balance<CoinTypeB>) {
         
@@ -623,7 +652,7 @@ module bluefin_spot::pool {
         assert!(object::id(pool) == position::pool_id(position), errors::position_does_not_belong_to_pool());
 
         // ensure pool is not paused
-        assert!(!pool.is_paused, errors::pool_is_paused());
+        assert_pool_active(protocol_config, pool);
 
         // ensure there is no flash swap in progress
         assert!(!is_flash_swap_in_progress(&pool.id), errors::flash_swap_in_progress());
@@ -695,7 +724,7 @@ module bluefin_spot::pool {
         assert!(object::id(pool) == position::pool_id(position), errors::position_does_not_belong_to_pool());
 
         // ensure pool is not paused
-        assert!(!pool.is_paused, errors::pool_is_paused());
+        assert_pool_active(protocol_config, pool);
 
         // ensure there is no flash swap in progress
         assert!(!is_flash_swap_in_progress(&pool.id), errors::flash_swap_in_progress());
@@ -749,8 +778,8 @@ module bluefin_spot::pool {
         clock: &Clock,
         protocol_config: &GlobalConfig, 
         pool: &mut Pool<CoinTypeA, CoinTypeB>, 
-        balance_a: Balance<CoinTypeA>,
-        balance_b: Balance<CoinTypeB>,
+        mut balance_a: Balance<CoinTypeA>,
+        mut balance_b: Balance<CoinTypeB>,
         a2b: bool,
         by_amount_in:bool,
         amount: u64,
@@ -762,7 +791,7 @@ module bluefin_spot::pool {
         config::verify_version(protocol_config);
 
         // verify pool is not paused
-        assert!(!pool.is_paused, errors::pool_is_paused());
+        assert_pool_active(protocol_config, pool);
 
         // ensure there is no flash swap in progress
         assert!(!is_flash_swap_in_progress(&pool.id), errors::flash_swap_in_progress());
@@ -827,7 +856,7 @@ module bluefin_spot::pool {
         // verify version
         config::verify_version(protocol_config);        
 
-        assert!(!pool.is_paused, errors::pool_is_paused());
+        assert_pool_active(protocol_config, pool);
 
         // revert if a flash swap is already in progress
         assert!(!is_flash_swap_in_progress(&pool.id), errors::flash_swap_in_progress());
@@ -898,7 +927,7 @@ module bluefin_spot::pool {
             assert!(pool.current_sqrt_price < sqrt_price_max_limit && sqrt_price_max_limit <= tick_math::max_sqrt_price(), errors::invalid_price_limit());
         };
 
-        let swap_result = SwapResult{
+        let mut swap_result = SwapResult{
             a2b                        : a2b,
             by_amount_in               : by_amount_in,
             amount_specified           : amount,
@@ -920,7 +949,7 @@ module bluefin_spot::pool {
         // Iterate until the amount to be swapped becomes zero
         while(swap_result.amount_specified_remaining > 0 && swap_result.end_sqrt_price != sqrt_price_max_limit){
 
-            let step_result = SwapStepResult{
+            let mut step_result = SwapStepResult{
                 tick_index_next: MateI32::zero(),
                 initialized: false,
                 sqrt_price_start: swap_result.end_sqrt_price,
@@ -1020,7 +1049,7 @@ module bluefin_spot::pool {
                 
                 // if the tick is initialized
                 if(step_result.initialized){
-                    let liquidity_net = tick::liquidity_net(tick::get_tick_from_manager(&pool.ticks_manager, step_result.tick_index_next));
+                    let mut liquidity_net = tick::liquidity_net(tick::get_tick_from_manager(&pool.ticks_manager, step_result.tick_index_next));
                     
                     liquidity_net = if (a2b) {
                         i128H::neg(liquidity_net)
@@ -1059,6 +1088,7 @@ module bluefin_spot::pool {
 
         // verify version
         config::verify_version(protocol_config);
+        guardian::assert_not_paused(protocol_config);
 
         // revert if no flash swap is in progress
         assert!(is_flash_swap_in_progress(&pool.id), errors::no_flash_swap_in_progress());
@@ -1204,10 +1234,11 @@ module bluefin_spot::pool {
         clock: &Clock,
         protocol_config: &GlobalConfig,
         pool: &mut Pool<CoinTypeA, CoinTypeB>,
-        position: Position) {
+        mut position: Position) {
 
         // verify version
         config::verify_version(protocol_config);
+        guardian::assert_not_paused(protocol_config);
 
         // assert that the position belongs to provided pool
         assert!(object::id(pool) == position::pool_id(&position), errors::position_does_not_belong_to_pool());
@@ -1248,7 +1279,7 @@ module bluefin_spot::pool {
         assert!(object::id(pool) == position::pool_id(position), errors::position_does_not_belong_to_pool());
 
         // ensure pool is not paused
-        assert!(!pool.is_paused, errors::pool_is_paused());
+        assert_pool_active(protocol_config, pool);
 
         // ensure there is no flash swap in progress
         assert!(!is_flash_swap_in_progress(&pool.id), errors::flash_swap_in_progress());
@@ -1294,7 +1325,7 @@ module bluefin_spot::pool {
         assert!(object::id(pool) == position::pool_id(position), errors::position_does_not_belong_to_pool());
 
          // ensure pool is not paused
-        assert!(!pool.is_paused, errors::pool_is_paused());
+        assert_pool_active(protocol_config, pool);
 
         // ensure there is no flash swap in progress
         assert!(!is_flash_swap_in_progress(&pool.id), errors::flash_swap_in_progress());
@@ -1372,10 +1403,10 @@ module bluefin_spot::pool {
 
     /// Returns true if the pool emits the provided reward
     public fun is_reward_present<CoinTypeA, CoinTypeB, RewardCoinType>(pool: &Pool<CoinTypeA, CoinTypeB>): bool {        
-        let exist = false;        
+        let mut exist = false;        
         let reward_type = utils::get_type_string<RewardCoinType>();
         let count = vector::length(&pool.reward_infos);
-        let i = 0;
+        let mut i = 0;
         while (i < count) {
             let reward_info = vector::borrow(&pool.reward_infos, i);
             if (reward_info.reward_coin_type == reward_type) {
@@ -1549,9 +1580,9 @@ module bluefin_spot::pool {
 
     fun find_reward_info_index<CoinTypeA, CoinTypeB, RewardCoinType>(pool: &Pool<CoinTypeA, CoinTypeB>) : u64 {
         let start_index = 0;
-        let reward_index = start_index;
-        let reward_found = false;
-        let current_index = start_index;
+        let mut reward_index = start_index;
+        let mut reward_found = false;
+        let mut current_index = start_index;
         while (current_index < vector::length<PoolRewardInfo>(&pool.reward_infos)) {
             if (vector::borrow<PoolRewardInfo>(&pool.reward_infos, current_index).reward_coin_type == utils::get_type_string<RewardCoinType>()) {
                 reward_index = current_index;
@@ -1580,7 +1611,7 @@ module bluefin_spot::pool {
 
         let target = utils::timestamp_seconds(clock);
 
-        let swap_result = SwapResult{
+        let mut swap_result = SwapResult{
             a2b                        : a2b,
             by_amount_in               : by_amount_in,
             amount_specified           : amount,
@@ -1602,7 +1633,7 @@ module bluefin_spot::pool {
         // Iterate until the amount to be swapped becomes zero
         while(swap_result.amount_specified_remaining > 0 && swap_result.end_sqrt_price != sqrt_price_max_limit){
 
-            let step_result = SwapStepResult{
+            let mut step_result = SwapStepResult{
                 tick_index_next: MateI32::zero(),
                 initialized: false,
                 sqrt_price_start: swap_result.end_sqrt_price,
@@ -1714,7 +1745,7 @@ module bluefin_spot::pool {
                         pool.liquidity
                     );
                     let new_reward_growths_global = update_reward_infos<CoinTypeA, CoinTypeB>(pool,  utils::timestamp_seconds(clock));
-                    let liquidity_net = tick::cross(
+                    let mut liquidity_net = tick::cross(
                         &mut pool.ticks_manager,
                         step_result.tick_index_next,
                         fee_growth_global_coin_a,
@@ -1772,7 +1803,7 @@ module bluefin_spot::pool {
 
 
 
-        let (lower_tick_flipped, upper_tick_flipped) = (false, false);
+        let (mut lower_tick_flipped, mut upper_tick_flipped) = (false, false);
 
         let tick_spacing = tick::tick_spacing(&pool.ticks_manager);
 
@@ -2001,7 +2032,7 @@ module bluefin_spot::pool {
 
         assert!(coin_a_type != coin_b_type, errors::invalid_coins());
 
-        let pool = Pool<CoinTypeA, CoinTypeB> {
+        let mut pool = Pool<CoinTypeA, CoinTypeB> {
             id:uid,
             name: string::utf8(pool_name),
             coin_a: balance::zero<CoinTypeA>(),
@@ -2172,7 +2203,7 @@ module bluefin_spot::pool {
         ctx: &mut TxContext): (Pool<CoinTypeA, CoinTypeB>, Position,  u64, u64, Balance<CoinTypeA>, Balance<CoinTypeB>) {
 
             // create pool
-        let pool = create_pool_internal<CoinTypeA, CoinTypeB>(
+        let mut pool = create_pool_internal<CoinTypeA, CoinTypeB>(
             clock,
             protocol_config,
             pool_name,
@@ -2196,7 +2227,7 @@ module bluefin_spot::pool {
         charge_pool_creation_fee<CoinTypeFee>(protocol_config, id, creation_fee, ctx);
 
         // open position
-        let position = open_position(protocol_config, &mut pool, lower_tick_bits, upper_tick_bits, ctx);
+        let mut position = open_position(protocol_config, &mut pool, lower_tick_bits, upper_tick_bits, ctx);
 
         let (coin_a_provided, coin_b_provided, balance_token_a, balance_token_b) = add_liquidity_with_fixed_amount<CoinTypeA, CoinTypeB>(
             clock,

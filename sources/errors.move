@@ -137,6 +137,31 @@ module bluefin_spot::errors {
     /// Triggered when the same value is provided for the same field
     const ESameValueProvided: u64 = 1040;
 
+    /// Triggered when a reward emission/duration call would push the
+    /// per-window aggregate over the configured cap (BET-3885).
+    const ECapExceeded: u64 = 1041;
+
+    /// Triggered when the admin attempts to set the emission window to 0
+    const EInvalidEmissionWindow: u64 = 1042;
+
+    /// Triggered when a fund-moving entry is called while the protocol is paused
+    const EProtocolPaused: u64 = 1043;
+
+    /// Triggered when a guardian-gated entry is called by a non-guardian sender
+    const ENotGuardian: u64 = 1044;
+
+    /// Triggered when admin rotates guardian to the address that is already the active guardian
+    const ERotationToSameGuardian: u64 = 1045;
+
+    /// Triggered when guardian state is read/written before it has been initialised
+    const EGuardianNotInitialized: u64 = 1046;
+
+    /// Triggered when init_state is called on a config that already has guardian state attached
+    const EGuardianAlreadyInitialized: u64 = 1047;
+
+    /// Triggered when a guardian address is set to the zero address
+    const EZeroGuardianAddress: u64 = 1048;
+
     //===========================================================//
     //                        Getter Methods                     //
     //===========================================================//
@@ -312,5 +337,25 @@ module bluefin_spot::errors {
     public fun same_value_provided(): u64 {
         ESameValueProvided
     }
+
+    public fun cap_exceeded(): u64 {
+        ECapExceeded
+    }
+
+    public fun invalid_emission_window(): u64 {
+        EInvalidEmissionWindow
+    }
+
+    public fun protocol_paused(): u64 { EProtocolPaused }
+
+    public fun not_guardian(): u64 { ENotGuardian }
+
+    public fun rotation_to_same_guardian(): u64 { ERotationToSameGuardian }
+
+    public fun guardian_not_initialized(): u64 { EGuardianNotInitialized }
+
+    public fun guardian_already_initialized(): u64 { EGuardianAlreadyInitialized }
+
+    public fun zero_guardian_address(): u64 { EZeroGuardianAddress }
 
 }

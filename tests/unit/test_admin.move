@@ -1,24 +1,14 @@
-/*
-  Copyright (c) 2025 Bluefin Labs Inc.
-  Proprietary Smart Contract License – All Rights Reserved.
-
-  This source code is provided for transparency and verification only.
-  Use, modification, reproduction, or redeployment of this code 
-  requires prior written permission from the Bluefin Labs Inc.
-*/
-
 #[test_only]
 module bluefin_spot::test_admin {
     use std::string;
-    use std::vector;
 
     use sui::test_scenario::{Self};
     use sui::balance;
-    use sui::clock::{Clock};
+    use sui::clock::{Self, Clock};
     use sui::coin::{Self};
 
-    
-    
+
+
     use bluefin_spot::admin::{Self, AdminCap, ProtocolFeeCap};
     use bluefin_spot::test_utils::{Self, BLUE, USDC};
     use bluefin_spot::config::{Self, GlobalConfig};
@@ -28,7 +18,7 @@ module bluefin_spot::test_admin {
 
     #[test]
     fun should_create_admin_and_fee_cap_upon_initialization() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
         let transaction_effects = test_scenario::next_tx(&mut scenario, test_utils::admin_address());
         {
@@ -49,7 +39,7 @@ module bluefin_spot::test_admin {
 
     #[test]
     fun should_transfer_admin_cap() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
         config::init_test(test_scenario::ctx(&mut scenario));
         test_scenario::next_tx(&mut scenario, test_utils::admin_address());
@@ -78,7 +68,7 @@ module bluefin_spot::test_admin {
 
     #[test]
     fun should_transfer_protocol_fee_cap() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
         config::init_test(test_scenario::ctx(&mut scenario));
 
@@ -109,13 +99,13 @@ module bluefin_spot::test_admin {
     #[test]
     fun should_claim_protocol_fee_via_admin_cap() {
         // setup a test scenario with a pool and a position having liquidity provided by BOB
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_position_having_liquidity(&mut scenario, test_utils::admin_address());
 
         // Alice swaps to generate some protocol fee
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::perform_swap_in_test_scenario(
                 &mut scenario,
                 &mut pool,
@@ -129,7 +119,7 @@ module bluefin_spot::test_admin {
         {
             let fee_cap = test_scenario::take_from_address<ProtocolFeeCap>(&scenario,test_utils::admin_address());
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let amount_a = pool::get_protocol_fee_for_coin_a(&pool);
             let amount_b = pool::get_protocol_fee_for_coin_b(&pool);
 
@@ -157,13 +147,13 @@ module bluefin_spot::test_admin {
     #[expected_failure(abort_code = 1003,location = bluefin_spot::admin)]
     fun should_not_be_able_to_claim_protocol_fee_via_admin_cap_due_to_invalid_coin_a_amount() {
         // setup a test scenario with a pool and a position having liquidity provided by BOB
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_position_having_liquidity(&mut scenario, test_utils::admin_address());
 
         // Alice swaps to generate some protocol fee
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::perform_swap_in_test_scenario(
                 &mut scenario,
                 &mut pool,
@@ -177,7 +167,7 @@ module bluefin_spot::test_admin {
         {
             let fee_cap = test_scenario::take_from_address<ProtocolFeeCap>(&scenario,test_utils::admin_address());
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let amount_a = pool::get_protocol_fee_for_coin_a(&pool);
             let amount_b = pool::get_protocol_fee_for_coin_b(&pool);
 
@@ -205,13 +195,13 @@ module bluefin_spot::test_admin {
     #[expected_failure(abort_code = 1003,location = bluefin_spot::admin)]
     fun should_not_be_able_to_claim_protocol_fee_via_admin_cap_due_to_invalid_coin_b_amount() {
         // setup a test scenario with a pool and a position having liquidity provided by BOB
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_position_having_liquidity(&mut scenario, test_utils::admin_address());
 
         // Alice swaps to generate some protocol fee
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::perform_swap_in_test_scenario(
                 &mut scenario,
                 &mut pool,
@@ -225,7 +215,7 @@ module bluefin_spot::test_admin {
         {
             let fee_cap = test_scenario::take_from_address<ProtocolFeeCap>(&scenario,test_utils::admin_address());
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let amount_a = pool::get_protocol_fee_for_coin_a(&pool);
             let amount_b = pool::get_protocol_fee_for_coin_b(&pool);
 
@@ -254,14 +244,14 @@ module bluefin_spot::test_admin {
 
     #[test]
     fun should_be_able_to_add_reward_manager() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
         config::init_test(test_scenario::ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, test_utils::admin_address());
         {
             let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario,test_utils::admin_address());
-            let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             admin::add_reward_manager(&admin_cap, &mut protocol_config, test_utils::bob_address());
             assert!(config::verify_reward_manager(&protocol_config, test_utils::bob_address()), 1);
             // return the objects back to admin address
@@ -273,14 +263,14 @@ module bluefin_spot::test_admin {
 
     #[test]
     fun should_be_able_to_remove_reward_manager() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
         config::init_test(test_scenario::ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, test_utils::admin_address());
         {
             let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario,test_utils::admin_address());
-            let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
              admin::add_reward_manager(&admin_cap, &mut protocol_config, test_utils::bob_address());
 
             // return the objects back to admin address
@@ -290,7 +280,7 @@ module bluefin_spot::test_admin {
         test_scenario::next_tx(&mut scenario, test_utils::admin_address());
         {
             let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario,test_utils::admin_address());
-            let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             admin::remove_reward_manager(&admin_cap, &mut protocol_config, test_utils::bob_address());
 
             assert!(!config::verify_reward_manager(&protocol_config, test_utils::bob_address()), 1);
@@ -303,23 +293,20 @@ module bluefin_spot::test_admin {
     }
 
     #[test]
-    fun should_be_able_to_update_pool_pause_status() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
-        admin::test_init(test_scenario::ctx(&mut scenario));
-        config::init_test(test_scenario::ctx(&mut scenario));
+    #[expected_failure(abort_code = 1036, location = bluefin_spot::admin)]
+    fun should_revert_when_calling_deprecated_update_pool_pause_status() {
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
 
         test_scenario::next_tx(&mut scenario, test_utils::admin_address());
         {
             let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario, test_utils::admin_address());
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
 
-            // Pause the pool
+            // Deprecated — pool pause is now controlled by the Guardian role via `admin::pause_pool`.
             admin::update_pool_pause_status<BLUE, USDC>(&admin_cap, &protocol_config, &mut pool, true);
-            assert!(pool::is_pool_paused(&pool), 2);
 
-            // return the objects back to admin address
             test_scenario::return_to_address<AdminCap>(test_utils::admin_address(), admin_cap);
             test_scenario::return_shared(protocol_config);
             test_scenario::return_shared(pool);
@@ -329,7 +316,7 @@ module bluefin_spot::test_admin {
 
     #[test]
     fun should_be_able_to_update_supported_version() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
         config::init_test(test_scenario::ctx(&mut scenario));
         
@@ -337,7 +324,7 @@ module bluefin_spot::test_admin {
         test_scenario::next_tx(&mut scenario, test_utils::admin_address());
         {
             let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario, test_utils::admin_address());
-            let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             config::set_version(&mut protocol_config, 1);
 
             // Get initial version
@@ -360,14 +347,14 @@ module bluefin_spot::test_admin {
     #[test]
     #[expected_failure(abort_code = 1005,location = bluefin_spot::config)]
     fun should_not_be_able_to_update_supported_version_due_to_max_version_reched() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
         config::init_test(test_scenario::ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, test_utils::admin_address());
         {
             let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario, test_utils::admin_address());
-            let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
 
             // Get initial version
             let initial_version = config::get_supported_version(&protocol_config);
@@ -388,7 +375,7 @@ module bluefin_spot::test_admin {
 
     #[test]
     fun should_be_able_to_update_protocol_fee_share() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
         config::init_test(test_scenario::ctx(&mut scenario));
         test_utils::create_pool_in_test_scenario(&mut scenario);
@@ -396,7 +383,7 @@ module bluefin_spot::test_admin {
         test_scenario::next_tx(&mut scenario, test_utils::admin_address());
         {
             let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario, test_utils::admin_address());
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
 
             // Get initial protocol fee share
             let initial_fee_share = pool::protocol_fee_share(&pool);
@@ -419,7 +406,7 @@ module bluefin_spot::test_admin {
     #[test]
     #[expected_failure(abort_code = 1025,location = bluefin_spot::admin)]
     fun should_not_be_able_to_update_protocol_fee_share_with_invalid_fee_share() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
         config::init_test(test_scenario::ctx(&mut scenario));
         test_utils::create_pool_in_test_scenario(&mut scenario);
@@ -427,7 +414,7 @@ module bluefin_spot::test_admin {
         test_scenario::next_tx(&mut scenario, test_utils::admin_address());
         {
             let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario, test_utils::admin_address());
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
 
             // Get initial protocol fee share
             let initial_fee_share = pool::protocol_fee_share(&pool);
@@ -449,7 +436,7 @@ module bluefin_spot::test_admin {
 
     #[test]
     fun should_be_able_to_increase_observation_cardinality_next() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
         config::init_test(test_scenario::ctx(&mut scenario));
         test_utils::create_pool_in_test_scenario(&mut scenario);
@@ -457,7 +444,7 @@ module bluefin_spot::test_admin {
         test_scenario::next_tx(&mut scenario, test_utils::admin_address());
         {
             let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario, test_utils::admin_address());
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
 
             // Increase observation cardinality
             let new_cardinality = 100;
@@ -473,7 +460,7 @@ module bluefin_spot::test_admin {
     #[test]
     #[expected_failure(abort_code = 1028,location = bluefin_spot::admin)]
     fun should_be_able_to_increase_observation_cardinality_next_with_invalid_cardinality() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
         config::init_test(test_scenario::ctx(&mut scenario));
         test_utils::create_pool_in_test_scenario(&mut scenario);
@@ -481,7 +468,7 @@ module bluefin_spot::test_admin {
         test_scenario::next_tx(&mut scenario, test_utils::admin_address());
         {
             let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario, test_utils::admin_address());
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
 
             // Increase observation cardinality
             let new_cardinality = 10000;
@@ -496,14 +483,14 @@ module bluefin_spot::test_admin {
 
     #[test]
     fun should_be_able_to_set_pool_manager() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
         config::init_test(test_scenario::ctx(&mut scenario));
         test_utils::create_pool_in_test_scenario(&mut scenario);
 
         test_scenario::next_tx(&mut scenario, test_utils::admin_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
 
             // Get initial pool manager
@@ -526,14 +513,14 @@ module bluefin_spot::test_admin {
 
     #[test]
     fun should_be_able_to_set_pool_creation_fee() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
         config::init_test(test_scenario::ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, test_utils::admin_address());
         {
             let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario, test_utils::admin_address());
-            let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
 
             // Set pool creation fee
             let new_fee_amount = 5_000_000; // 5 USDC
@@ -549,14 +536,14 @@ module bluefin_spot::test_admin {
 
     #[test]
     fun should_be_able_to_claim_pool_creation_fee() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
 
         // Now claim the pool creation fee
         test_scenario::next_tx(&mut scenario, test_utils::admin_address());
         {
             let fee_cap = test_scenario::take_from_address<ProtocolFeeCap>(&scenario, test_utils::admin_address());
-            let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
 
             // Claim pool creation fee
             admin::claim_pool_creation_fee<USDC>(&fee_cap, &mut protocol_config, 1000, test_utils::bob_address(), test_scenario::ctx(&mut scenario));
@@ -571,14 +558,14 @@ module bluefin_spot::test_admin {
     #[test]
     #[expected_failure(abort_code = 1029,location = bluefin_spot::admin)]
     fun should_not_be_able_to_claim_pool_creation_fee_with_amount_zero() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
 
         // Now claim the pool creation fee
         test_scenario::next_tx(&mut scenario, test_utils::admin_address());
         {
             let fee_cap = test_scenario::take_from_address<ProtocolFeeCap>(&scenario, test_utils::admin_address());
-            let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
 
             // Claim pool creation fee
             admin::claim_pool_creation_fee<USDC>(&fee_cap, &mut protocol_config, 0, test_utils::bob_address(), test_scenario::ctx(&mut scenario));
@@ -593,14 +580,14 @@ module bluefin_spot::test_admin {
     #[test]
     #[expected_failure(abort_code = 1038,location = bluefin_spot::admin)]
     fun should_not_be_able_to_claim_pool_creation_fee_with_unsupported_coin() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
 
         // Now claim the pool creation fee
         test_scenario::next_tx(&mut scenario, test_utils::admin_address());
         {
             let fee_cap = test_scenario::take_from_address<ProtocolFeeCap>(&scenario, test_utils::admin_address());
-            let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
 
             // Claim pool creation fee
             admin::claim_pool_creation_fee<BLUE>(&fee_cap, &mut protocol_config, 100, test_utils::bob_address(), test_scenario::ctx(&mut scenario));
@@ -615,14 +602,14 @@ module bluefin_spot::test_admin {
     #[test]
     #[expected_failure(abort_code = 1003,location = bluefin_spot::admin)]
     fun should_not_be_able_to_claim_pool_creation_fee_with_amount_greater_than_collected_fee() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
 
         // Now claim the pool creation fee
         test_scenario::next_tx(&mut scenario, test_utils::admin_address());
         {
             let fee_cap = test_scenario::take_from_address<ProtocolFeeCap>(&scenario, test_utils::admin_address());
-            let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
 
             // Claim pool creation fee
             admin::claim_pool_creation_fee<USDC>(&fee_cap, &mut protocol_config, 1_000_000_000, test_utils::bob_address(), test_scenario::ctx(&mut scenario));
@@ -636,7 +623,7 @@ module bluefin_spot::test_admin {
 
     #[test]
     fun should_be_able_to_set_pool_icon_url() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
         config::init_test(test_scenario::ctx(&mut scenario));
         test_utils::create_pool_in_test_scenario(&mut scenario);
@@ -645,7 +632,7 @@ module bluefin_spot::test_admin {
         {
             let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario, test_utils::admin_address());
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
 
           
 
@@ -663,7 +650,7 @@ module bluefin_spot::test_admin {
 
     #[test]
     fun should_be_able_to_add_rewards_to_pool() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
         config::init_test(test_scenario::ctx(&mut scenario));
         test_utils::create_pool_in_test_scenario(&mut scenario);
@@ -671,7 +658,7 @@ module bluefin_spot::test_admin {
         test_scenario::next_tx(&mut scenario, test_utils::admin_address());
         {
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
 
             // Add rewards to the pool
             test_utils::add_rewards_in_test_scenario(&mut scenario, &mut pool, test_utils::admin_address());
@@ -686,7 +673,7 @@ module bluefin_spot::test_admin {
     #[test]
     #[expected_failure(abort_code = 1023,location = bluefin_spot::admin)]
     fun should_not_be_able_to_add_rewards_to_pool_due_to_not_invalid_manager() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
         config::init_test(test_scenario::ctx(&mut scenario));
         test_utils::create_pool_in_test_scenario(&mut scenario);
@@ -696,10 +683,10 @@ module bluefin_spot::test_admin {
             // create some test coins
             let reward_coin = balance::create_for_testing<USDC>(1_000_000_000); // 1000 USDC
             let clock = test_scenario::take_shared<Clock>(&scenario);
-            let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             admin::initialize_pool_reward<BLUE, USDC, USDC>(
-                &protocol_config,
+                &mut protocol_config,
                 &mut pool,
                 test_utils::start_time(), // not a valid reward manager
                 10,
@@ -721,7 +708,7 @@ module bluefin_spot::test_admin {
     #[test]
     #[expected_failure(abort_code = 1037,location = bluefin_spot::admin)]
     fun should_not_be_able_to_add_rewards_to_pool_due_to_invalid_amount() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
         config::init_test(test_scenario::ctx(&mut scenario));
         test_utils::create_pool_in_test_scenario(&mut scenario);
@@ -731,10 +718,10 @@ module bluefin_spot::test_admin {
             // create some test coins
             let reward_coin = balance::create_for_testing<USDC>(1_000_000_000); // 1000 USDC
             let clock = test_scenario::take_shared<Clock>(&scenario);
-            let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             admin::initialize_pool_reward<BLUE, USDC, USDC>(
-                &protocol_config,
+                &mut protocol_config,
                 &mut pool,
                 test_utils::start_time(), // not a valid reward manager
                 10,
@@ -756,7 +743,7 @@ module bluefin_spot::test_admin {
     #[test]
     #[expected_failure(abort_code = 1020,location = bluefin_spot::admin)]
     fun should_not_be_able_to_add_rewards_to_pool_due_to_invalid_start_time() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
         config::init_test(test_scenario::ctx(&mut scenario));
         test_utils::create_pool_in_test_scenario(&mut scenario);
@@ -766,10 +753,10 @@ module bluefin_spot::test_admin {
             // create some test coins
             let reward_coin = balance::create_for_testing<USDC>(1_000_000_000); // 1000 USDC
             let clock = test_scenario::take_shared<Clock>(&scenario);
-            let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             admin::initialize_pool_reward<BLUE, USDC, USDC>(
-                &protocol_config,
+                &mut protocol_config,
                 &mut pool,
                 0, 
                 10,
@@ -790,20 +777,20 @@ module bluefin_spot::test_admin {
 
     #[test]
     fun should_be_able_to_update_pool_reward_emission() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_pool_having_rewards(&mut scenario, test_utils::admin_address());
 
         test_scenario::next_tx(&mut scenario, test_utils::admin_address());
         {
             let balance = balance::create_for_testing<USDC>(1_000_000_000);
-            let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
 
             // Update pool reward emission
             let new_emission_rate = 20; // New emission rate
             admin::update_pool_reward_emission<BLUE, USDC, USDC>
-            ( &protocol_config,
+            ( &mut protocol_config,
              &mut pool, 
              new_emission_rate, 
              coin::from_balance<USDC>(balance, test_scenario::ctx(&mut scenario)),
@@ -823,20 +810,20 @@ module bluefin_spot::test_admin {
     #[test]
     #[expected_failure(abort_code = 1023,location = bluefin_spot::admin)]
     fun should_notbe_able_to_update_pool_reward_emission_due_to_invalid_manager() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_pool_having_rewards(&mut scenario, test_utils::admin_address());
 
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
             let balance = balance::create_for_testing<USDC>(1_000_000_000);
-            let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
 
             // Update pool reward emission
             let new_emission_rate = 20; // New emission rate
             admin::update_pool_reward_emission<BLUE, USDC, USDC>
-            ( &protocol_config,
+            ( &mut protocol_config,
              &mut pool, 
              new_emission_rate, 
              coin::from_balance<USDC>(balance, test_scenario::ctx(&mut scenario)),
@@ -856,20 +843,20 @@ module bluefin_spot::test_admin {
     #[test]
     #[expected_failure(abort_code = 1037,location = bluefin_spot::admin)]
     fun should_notbe_able_to_update_pool_reward_emission_due_to_invalid_amount() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_pool_having_rewards(&mut scenario, test_utils::admin_address());
 
         test_scenario::next_tx(&mut scenario, test_utils::admin_address());
         {
             let balance = balance::create_for_testing<USDC>(1_000_000_000);
-            let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
 
             // Update pool reward emission
             let new_emission_rate = 20; // New emission rate
             admin::update_pool_reward_emission<BLUE, USDC, USDC>
-            ( &protocol_config,
+            ( &mut protocol_config,
              &mut pool, 
              new_emission_rate, 
              coin::from_balance<USDC>(balance, test_scenario::ctx(&mut scenario)),
@@ -888,19 +875,19 @@ module bluefin_spot::test_admin {
 
     #[test]
     fun should_be_able_to_add_seconds_to_rewards_emission(){
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_pool_having_rewards(&mut scenario, test_utils::admin_address());
 
         test_scenario::next_tx(&mut scenario, test_utils::admin_address());
         {
-            let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
 
             // Add seconds to rewards emission
             let additional_seconds = 500; // Additional seconds
             admin::add_seconds_to_reward_emission<BLUE, USDC, USDC>
-            ( &protocol_config,
+            ( &mut protocol_config,
              &mut pool, 
              additional_seconds, 
              &clock,
@@ -918,19 +905,19 @@ module bluefin_spot::test_admin {
     #[test]
     #[expected_failure(abort_code = 1023,location = bluefin_spot::admin)]
     fun should_not_be_able_to_add_seconds_to_rewards_emission_due_to_invalid_manager() {
-       let scenario = test_scenario::begin(test_utils::admin_address());
+       let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_pool_having_rewards(&mut scenario, test_utils::admin_address());
 
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
 
             // Add seconds to rewards emission
             let additional_seconds = 500; // Additional seconds
             admin::add_seconds_to_reward_emission<BLUE, USDC, USDC>
-            ( &protocol_config,
+            ( &mut protocol_config,
              &mut pool, 
              additional_seconds, 
              &clock,
@@ -947,7 +934,7 @@ module bluefin_spot::test_admin {
 
     #[test]
     fun should_be_able_to_add_reserve_to_pool_rewards() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::setup_test_scenario_with_pool_having_rewards(&mut scenario, test_utils::admin_address());
 
         test_scenario::next_tx(&mut scenario, test_utils::admin_address());
@@ -955,7 +942,7 @@ module bluefin_spot::test_admin {
             let balance = balance::create_for_testing<USDC>(1_000_000_000);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario,test_utils::admin_address());
 
             // Add reserve to pool rewards
@@ -969,6 +956,390 @@ module bluefin_spot::test_admin {
             // return the objects back to admin address
             test_scenario::return_shared(protocol_config);
             test_scenario::return_shared(pool);
+            test_scenario::return_shared(clock);
+            test_scenario::return_to_address<AdminCap>(test_utils::admin_address(), admin_cap);
+        };
+        test_scenario::end(scenario);
+    }
+
+    //===========================================================//
+    //         BET-3885: REWARDS_MANAGER emission rate caps      //
+    //===========================================================//
+
+    /// AdminCap holder can install caps; the dynamic field is created
+    /// and a follow-up legitimate emission update inside the cap
+    /// succeeds without reverts.
+    #[test]
+    fun should_install_emission_caps_and_allow_within_cap() {
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
+        test_utils::setup_test_scenario_with_pool_having_rewards(&mut scenario, test_utils::admin_address());
+
+        test_scenario::next_tx(&mut scenario, test_utils::admin_address());
+        {
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let clock = test_scenario::take_shared<Clock>(&scenario);
+            let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario, test_utils::admin_address());
+
+            assert!(!config::emission_caps_exist(&protocol_config), 1);
+
+            admin::update_emission_caps(
+                &admin_cap,
+                &mut protocol_config,
+                10_000_000_000, // delta cap
+                3_600,          // duration cap (1h / window)
+                86_400,         // window: 24h
+                &clock,
+            );
+
+            assert!(config::emission_caps_exist(&protocol_config), 2);
+            assert!(config::get_window_delta_sum(&protocol_config) == 0, 3);
+            assert!(config::get_window_duration_sum(&protocol_config) == 0, 4);
+
+            test_scenario::return_shared(protocol_config);
+            test_scenario::return_shared(clock);
+            test_scenario::return_to_address<AdminCap>(test_utils::admin_address(), admin_cap);
+        };
+
+        // Now perform a legitimate update_pool_reward_emission within the cap.
+        test_scenario::next_tx(&mut scenario, test_utils::admin_address());
+        {
+            let balance = balance::create_for_testing<USDC>(1_000_000_000);
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let clock = test_scenario::take_shared<Clock>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+
+            admin::update_pool_reward_emission<BLUE, USDC, USDC>(
+                &mut protocol_config,
+                &mut pool,
+                20,
+                coin::from_balance<USDC>(balance, test_scenario::ctx(&mut scenario)),
+                1_000_000_000,
+                &clock,
+                test_scenario::ctx(&mut scenario),
+            );
+
+            assert!(config::get_window_delta_sum(&protocol_config) == 1_000_000_000, 5);
+
+            test_scenario::return_shared(protocol_config);
+            test_scenario::return_shared(pool);
+            test_scenario::return_shared(clock);
+        };
+        test_scenario::end(scenario);
+    }
+
+    /// Two top-up calls inside the same window that together exceed the
+    /// delta cap should revert with ECapExceeded (1041) on the second.
+    #[test]
+    #[expected_failure(abort_code = 1041, location = bluefin_spot::config)]
+    fun should_revert_when_delta_cap_exceeded() {
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
+        test_utils::setup_test_scenario_with_pool_having_rewards(&mut scenario, test_utils::admin_address());
+
+        test_scenario::next_tx(&mut scenario, test_utils::admin_address());
+        {
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let clock = test_scenario::take_shared<Clock>(&scenario);
+            let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario, test_utils::admin_address());
+
+            // Tight cap: 1.5x the per-call amount we deposit below.
+            admin::update_emission_caps(
+                &admin_cap,
+                &mut protocol_config,
+                1_500_000_000,
+                3_600,
+                86_400,
+                &clock,
+            );
+
+            test_scenario::return_shared(protocol_config);
+            test_scenario::return_shared(clock);
+            test_scenario::return_to_address<AdminCap>(test_utils::admin_address(), admin_cap);
+        };
+
+        // First top-up: 1B, within cap (1B <= 1.5B). Should succeed.
+        test_scenario::next_tx(&mut scenario, test_utils::admin_address());
+        {
+            let balance = balance::create_for_testing<USDC>(1_000_000_000);
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let clock = test_scenario::take_shared<Clock>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+
+            admin::update_pool_reward_emission<BLUE, USDC, USDC>(
+                &mut protocol_config,
+                &mut pool,
+                20,
+                coin::from_balance<USDC>(balance, test_scenario::ctx(&mut scenario)),
+                1_000_000_000,
+                &clock,
+                test_scenario::ctx(&mut scenario),
+            );
+
+            test_scenario::return_shared(protocol_config);
+            test_scenario::return_shared(pool);
+            test_scenario::return_shared(clock);
+        };
+
+        // Second top-up: another 1B, running total 2B > 1.5B cap -> revert.
+        test_scenario::next_tx(&mut scenario, test_utils::admin_address());
+        {
+            let balance = balance::create_for_testing<USDC>(1_000_000_000);
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let clock = test_scenario::take_shared<Clock>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+
+            admin::update_pool_reward_emission<BLUE, USDC, USDC>(
+                &mut protocol_config,
+                &mut pool,
+                20,
+                coin::from_balance<USDC>(balance, test_scenario::ctx(&mut scenario)),
+                1_000_000_000,
+                &clock,
+                test_scenario::ctx(&mut scenario),
+            );
+
+            test_scenario::return_shared(protocol_config);
+            test_scenario::return_shared(pool);
+            test_scenario::return_shared(clock);
+        };
+        test_scenario::end(scenario);
+    }
+
+    /// add_seconds_to_reward_emission past the duration cap reverts.
+    /// A legitimate big top-up (active_for_seconds = 14d) must NOT trip
+    /// the duration cap — that's the whole point of the balance>0 branch.
+    #[test]
+    #[expected_failure(abort_code = 1041, location = bluefin_spot::config)]
+    fun should_revert_when_duration_cap_exceeded() {
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
+        test_utils::setup_test_scenario_with_pool_having_rewards(&mut scenario, test_utils::admin_address());
+
+        test_scenario::next_tx(&mut scenario, test_utils::admin_address());
+        {
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let clock = test_scenario::take_shared<Clock>(&scenario);
+            let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario, test_utils::admin_address());
+
+            // duration cap = 1h
+            admin::update_emission_caps(
+                &admin_cap,
+                &mut protocol_config,
+                1_000_000_000_000,
+                3_600,
+                86_400,
+                &clock,
+            );
+
+            test_scenario::return_shared(protocol_config);
+            test_scenario::return_shared(clock);
+            test_scenario::return_to_address<AdminCap>(test_utils::admin_address(), admin_cap);
+        };
+
+        // First add_seconds: 30 min (1800s) — within 1h cap. Should pass.
+        test_scenario::next_tx(&mut scenario, test_utils::admin_address());
+        {
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let clock = test_scenario::take_shared<Clock>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+
+            admin::add_seconds_to_reward_emission<BLUE, USDC, USDC>(
+                &mut protocol_config,
+                &mut pool,
+                1_800,
+                &clock,
+                test_scenario::ctx(&mut scenario),
+            );
+
+            test_scenario::return_shared(protocol_config);
+            test_scenario::return_shared(pool);
+            test_scenario::return_shared(clock);
+        };
+
+        // Second add_seconds: 2h (7200s) — running total 7200+1800 > 3600 cap -> revert.
+        test_scenario::next_tx(&mut scenario, test_utils::admin_address());
+        {
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let clock = test_scenario::take_shared<Clock>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+
+            admin::add_seconds_to_reward_emission<BLUE, USDC, USDC>(
+                &mut protocol_config,
+                &mut pool,
+                7_200,
+                &clock,
+                test_scenario::ctx(&mut scenario),
+            );
+
+            test_scenario::return_shared(protocol_config);
+            test_scenario::return_shared(pool);
+            test_scenario::return_shared(clock);
+        };
+        test_scenario::end(scenario);
+    }
+
+    /// When caps haven't been configured, all reward operations
+    /// should pass without enforcement — the pre-migration state.
+    #[test]
+    fun should_skip_enforcement_when_caps_not_configured() {
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
+        test_utils::setup_test_scenario_with_pool_having_rewards(&mut scenario, test_utils::admin_address());
+
+        test_scenario::next_tx(&mut scenario, test_utils::admin_address());
+        {
+            let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            assert!(!config::emission_caps_exist(&protocol_config), 1);
+            test_scenario::return_shared(protocol_config);
+        };
+
+        // Without caps installed, both a huge top-up and a huge add_seconds
+        // must pass — verifies the no-op default path.
+        test_scenario::next_tx(&mut scenario, test_utils::admin_address());
+        {
+            let balance = balance::create_for_testing<USDC>(1_000_000_000_000);
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let clock = test_scenario::take_shared<Clock>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+
+            admin::update_pool_reward_emission<BLUE, USDC, USDC>(
+                &mut protocol_config,
+                &mut pool,
+                20,
+                coin::from_balance<USDC>(balance, test_scenario::ctx(&mut scenario)),
+                1_000_000_000_000,
+                &clock,
+                test_scenario::ctx(&mut scenario),
+            );
+
+            admin::add_seconds_to_reward_emission<BLUE, USDC, USDC>(
+                &mut protocol_config,
+                &mut pool,
+                1_000_000_000,
+                &clock,
+                test_scenario::ctx(&mut scenario),
+            );
+
+            test_scenario::return_shared(protocol_config);
+            test_scenario::return_shared(pool);
+            test_scenario::return_shared(clock);
+        };
+        test_scenario::end(scenario);
+    }
+
+    /// Fixed-window reset: once `emission_window_seconds` elapses, the
+    /// running totals reset and a new call can re-spend the full cap.
+    #[test]
+    fun should_reset_window_after_expiry() {
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
+        test_utils::setup_test_scenario_with_pool_having_rewards(&mut scenario, test_utils::admin_address());
+
+        // Install cap; set window to 100s for a fast test.
+        test_scenario::next_tx(&mut scenario, test_utils::admin_address());
+        {
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let clock = test_scenario::take_shared<Clock>(&scenario);
+            let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario, test_utils::admin_address());
+
+            admin::update_emission_caps(
+                &admin_cap,
+                &mut protocol_config,
+                1_500_000_000,
+                3_600,
+                100,
+                &clock,
+            );
+
+            test_scenario::return_shared(protocol_config);
+            test_scenario::return_shared(clock);
+            test_scenario::return_to_address<AdminCap>(test_utils::admin_address(), admin_cap);
+        };
+
+        // First call: consumes the full delta cap.
+        test_scenario::next_tx(&mut scenario, test_utils::admin_address());
+        {
+            let balance = balance::create_for_testing<USDC>(1_500_000_000);
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let clock = test_scenario::take_shared<Clock>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+
+            admin::update_pool_reward_emission<BLUE, USDC, USDC>(
+                &mut protocol_config,
+                &mut pool,
+                20,
+                coin::from_balance<USDC>(balance, test_scenario::ctx(&mut scenario)),
+                1_500_000_000,
+                &clock,
+                test_scenario::ctx(&mut scenario),
+            );
+            assert!(config::get_window_delta_sum(&protocol_config) == 1_500_000_000, 1);
+
+            test_scenario::return_shared(protocol_config);
+            test_scenario::return_shared(pool);
+            test_scenario::return_shared(clock);
+        };
+
+        // Advance clock past the 100s window; cap should re-open.
+        test_scenario::next_tx(&mut scenario, test_utils::admin_address());
+        {
+            let mut clock = test_scenario::take_shared<Clock>(&scenario);
+            // Window is 100s; jump ahead by 200s (in ms) to safely cross.
+            let now = clock::timestamp_ms(&clock);
+            clock::set_for_testing(&mut clock, now + 200_000);
+            test_scenario::return_shared(clock);
+        };
+
+        // Second call: same amount, must pass thanks to window reset.
+        test_scenario::next_tx(&mut scenario, test_utils::admin_address());
+        {
+            let balance = balance::create_for_testing<USDC>(1_500_000_000);
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let clock = test_scenario::take_shared<Clock>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+
+            admin::update_pool_reward_emission<BLUE, USDC, USDC>(
+                &mut protocol_config,
+                &mut pool,
+                20,
+                coin::from_balance<USDC>(balance, test_scenario::ctx(&mut scenario)),
+                1_500_000_000,
+                &clock,
+                test_scenario::ctx(&mut scenario),
+            );
+            assert!(config::get_window_delta_sum(&protocol_config) == 1_500_000_000, 2);
+
+            test_scenario::return_shared(protocol_config);
+            test_scenario::return_shared(pool);
+            test_scenario::return_shared(clock);
+        };
+        test_scenario::end(scenario);
+    }
+
+    /// Setting emission_window_seconds = 0 should revert with
+    /// EInvalidEmissionWindow (1042).
+    #[test]
+    #[expected_failure(abort_code = 1042, location = bluefin_spot::config)]
+    fun should_revert_emission_caps_with_zero_window() {
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
+        admin::test_init(test_scenario::ctx(&mut scenario));
+        config::init_test(test_scenario::ctx(&mut scenario));
+        let mut clock = clock::create_for_testing(test_scenario::ctx(&mut scenario));
+        clock::set_for_testing(&mut clock, 1_000_000);
+        clock::share_for_testing(clock);
+
+        test_scenario::next_tx(&mut scenario, test_utils::admin_address());
+        {
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let clock = test_scenario::take_shared<Clock>(&scenario);
+            let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario, test_utils::admin_address());
+
+            admin::update_emission_caps(
+                &admin_cap,
+                &mut protocol_config,
+                1_000_000_000,
+                3_600,
+                0, // invalid
+                &clock,
+            );
+
+            test_scenario::return_shared(protocol_config);
             test_scenario::return_shared(clock);
             test_scenario::return_to_address<AdminCap>(test_utils::admin_address(), admin_cap);
         };

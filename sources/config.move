@@ -8,26 +8,20 @@
 */
 
 module bluefin_spot::config {
-    use sui::object::{Self, UID};
-    use sui::tx_context::{TxContext};
     use sui::table::{Self};
     use sui::dynamic_field;
-    use sui::transfer;
-    use std::vector;
+    use sui::clock::{Self, Clock};
 
     use integer_mate::i32::{I32};
     use bluefin_spot::tick_math;
     use bluefin_spot::utils;
     use bluefin_spot::constants;
+    use bluefin_spot::events;
 
     // local modules
     use bluefin_spot::errors;
 
     // friend modules
-    friend bluefin_spot::admin;
-    friend bluefin_spot::pool;
-    #[test_only]
-    friend bluefin_spot::test_config;
 
     //===========================================================//
     //                         Constants                         //
@@ -37,11 +31,10 @@ module bluefin_spot::config {
     /// Tracks the current version of the package. Every time a breaking change is pushed, 
     /// increment the version on the new package, making any old version of the package 
     /// unable to be used
-    const VERSION: u64 = 8;
-
+    const VERSION: u64 = 9;
 
     /// The protocol's config
-    struct GlobalConfig has key, store {
+    public struct GlobalConfig has key, store {
         id: UID,
         min_tick: I32,
         max_tick: I32,
@@ -49,16 +42,31 @@ module bluefin_spot::config {
         reward_managers: vector<address>
     }
 
+    /// Per-window cap state for the REWARDS_MANAGER role (BET-3885).
+    /// Stored as a dynamic field on `GlobalConfig.id` so the existing
+    /// shared object's struct layout is unchanged (Sui upgrade compat).
+    /// Absent on a fresh package upgrade until the admin first calls
+    /// `update_emission_caps`; while absent, the cap is treated as
+    /// disabled (no enforcement, no window tracking).
+    public struct RewardEmissionCaps has store, drop {
+        max_emission_delta_per_window: u64,
+        max_duration_extension_per_window: u64,
+        emission_window_seconds: u64,
+        window_start_ts: u64,
+        window_delta_sum: u64,
+        window_duration_sum: u64,
+    }
+
     //===========================================================//
     //                     Friend Functions                      //
     //===========================================================//
 
     // removes a reward manager from global config. Only Admin can invoke this.
-    public(friend) fun remove_reward_manager(config: &mut GlobalConfig, manager: address){
+    public(package) fun remove_reward_manager(config: &mut GlobalConfig, manager: address){
 
         assert!(verify_reward_manager(config, manager), errors::reward_manager_not_found());
 
-        let index = 0;
+        let mut index = 0;
         let len = vector::length(&config.reward_managers);
         while (index < len) {
             if (*(vector::borrow(&config.reward_managers, index)) == manager ) {
@@ -70,7 +78,7 @@ module bluefin_spot::config {
     }
 
     // Adds a reward manager in global config. Only Admin can invoke this.
-    public(friend) fun set_reward_manager(config: &mut GlobalConfig, manager: address){
+    public(package) fun set_reward_manager(config: &mut GlobalConfig, manager: address){
         // if provided manager is not already whitelisted only then add it
         assert!(!verify_reward_manager(config, manager), errors::already_a_reward_manger());
         vector::push_back<address>(&mut config.reward_managers, manager);
@@ -78,7 +86,7 @@ module bluefin_spot::config {
 
     // Increases the version of the protocol supported. Only admin can invoke this.
     // Returns the old version and new version 
-    public(friend) fun increase_version(config: &mut GlobalConfig): (u64, u64) {
+    public(package) fun increase_version(config: &mut GlobalConfig): (u64, u64) {
         // ensures that config version is never increased beyond VERSION
         assert!(config.version < VERSION, errors::verion_cant_be_increased());
 
@@ -89,8 +97,108 @@ module bluefin_spot::config {
     }
 
 
-    public(friend) fun get_config_id(config: &mut GlobalConfig): &mut UID {
+    public(package) fun get_config_id(config: &mut GlobalConfig): &mut UID {
         &mut config.id
+    }
+
+    /// Install or update the reward-emission caps (BET-3885).
+    /// Only callable by `admin` (friend). The caller is responsible for
+    /// gating this behind `AdminCap`. Mutation resets the window state
+    /// so we don't carry stale sums across a cap change.
+    public(package) fun set_emission_caps(
+        config: &mut GlobalConfig,
+        max_emission_delta_per_window: u64,
+        max_duration_extension_per_window: u64,
+        emission_window_seconds: u64,
+        clock: &Clock,
+    ) {
+        assert!(emission_window_seconds > 0, errors::invalid_emission_window());
+
+        let now = clock::timestamp_ms(clock) / 1000;
+        let new_caps = RewardEmissionCaps {
+            max_emission_delta_per_window,
+            max_duration_extension_per_window,
+            emission_window_seconds,
+            window_start_ts: now,
+            window_delta_sum: 0,
+            window_duration_sum: 0,
+        };
+
+        let key = constants::emission_caps_dynamic_key();
+        if (dynamic_field::exists_(&config.id, key)) {
+            let _old: RewardEmissionCaps = dynamic_field::remove(&mut config.id, key);
+        };
+        dynamic_field::add(&mut config.id, key, new_caps);
+
+        events::emit_emission_caps_updated_event(
+            max_emission_delta_per_window,
+            max_duration_extension_per_window,
+            emission_window_seconds,
+        );
+    }
+
+    /// Enforces the per-window reward-delta cap and bumps the running
+    /// total. No-op when the caps dynamic field is absent (pre-config
+    /// upgrade state). Called from `pool::update_pool_reward_emission`
+    /// when a positive reward balance is being deposited.
+    public(package) fun enforce_emission_delta_cap(
+        config: &mut GlobalConfig,
+        clock: &Clock,
+        delta: u64,
+    ) {
+        let key = constants::emission_caps_dynamic_key();
+        if (!dynamic_field::exists_(&config.id, key)) { return };
+
+        let caps: &mut RewardEmissionCaps = dynamic_field::borrow_mut(&mut config.id, key);
+        roll_window_if_expired(caps, clock);
+
+        // Overflow-safe: invariant `caps.window_delta_sum <= caps.max_emission_delta_per_window`
+        // is maintained by the assert below, so the subtraction is always >= 0.
+        assert!(
+            caps.max_emission_delta_per_window - caps.window_delta_sum >= delta,
+            errors::cap_exceeded()
+        );
+        caps.window_delta_sum = caps.window_delta_sum + delta;
+    }
+
+    /// Enforces the per-window duration-extension cap and bumps the
+    /// running total. No-op when the caps dynamic field is absent.
+    /// Called from `pool::update_pool_reward_emission` when the deposited
+    /// balance is zero (i.e. invoked via `add_seconds_to_reward_emission`).
+    public(package) fun enforce_duration_extension_cap(
+        config: &mut GlobalConfig,
+        clock: &Clock,
+        seconds: u64,
+    ) {
+        let key = constants::emission_caps_dynamic_key();
+        if (!dynamic_field::exists_(&config.id, key)) { return };
+
+        let caps: &mut RewardEmissionCaps = dynamic_field::borrow_mut(&mut config.id, key);
+        roll_window_if_expired(caps, clock);
+
+        assert!(
+            caps.max_duration_extension_per_window - caps.window_duration_sum >= seconds,
+            errors::cap_exceeded()
+        );
+        caps.window_duration_sum = caps.window_duration_sum + seconds;
+    }
+
+    /// Fixed-window reset: `window_start_ts` rolls forward on the first
+    /// call after expiry, not continuously. Accepts a small slack at
+    /// window boundaries in exchange for trivial state.
+    fun roll_window_if_expired(caps: &mut RewardEmissionCaps, clock: &Clock) {
+        let now = clock::timestamp_ms(clock) / 1000;
+        if (now - caps.window_start_ts > caps.emission_window_seconds) {
+            caps.window_start_ts = now;
+            caps.window_delta_sum = 0;
+            caps.window_duration_sum = 0;
+        };
+    }
+
+    /// Read-only accessor for `GlobalConfig`'s `UID`, used by the guardian
+    /// module to read dynamic fields without taking a mutable reference.
+    public(package) fun id(config: &GlobalConfig): &UID {
+        &config.id
     }
 
     //===========================================================//
@@ -129,7 +237,7 @@ module bluefin_spot::config {
     public fun verify_reward_manager(config: &GlobalConfig, manager: address) : bool
     {
 
-        let i = 0;
+        let mut i = 0;
         while (i < vector::length<address>(&config.reward_managers)) {
             let addr = vector::borrow<address>(&config.reward_managers, i);
             if (*addr == manager) {
@@ -227,5 +335,34 @@ module bluefin_spot::config {
     public fun destroy_config_for_testing(config: GlobalConfig) {
         let GlobalConfig { id, min_tick: _, max_tick: _, version: _, reward_managers: _ } = config;
         object::delete(id);
+    }
+
+    #[test_only]
+    public fun emission_caps_exist(config: &GlobalConfig): bool {
+        dynamic_field::exists_(&config.id, constants::emission_caps_dynamic_key())
+    }
+
+    #[test_only]
+    public fun get_window_delta_sum(config: &GlobalConfig): u64 {
+        let caps: &RewardEmissionCaps = dynamic_field::borrow(
+            &config.id, constants::emission_caps_dynamic_key()
+        );
+        caps.window_delta_sum
+    }
+
+    #[test_only]
+    public fun get_window_duration_sum(config: &GlobalConfig): u64 {
+        let caps: &RewardEmissionCaps = dynamic_field::borrow(
+            &config.id, constants::emission_caps_dynamic_key()
+        );
+        caps.window_duration_sum
+    }
+
+    #[test_only]
+    public fun get_window_start_ts(config: &GlobalConfig): u64 {
+        let caps: &RewardEmissionCaps = dynamic_field::borrow(
+            &config.id, constants::emission_caps_dynamic_key()
+        );
+        caps.window_start_ts
     }
 }

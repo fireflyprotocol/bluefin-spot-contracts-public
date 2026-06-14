@@ -8,7 +8,6 @@
 */
 
 module bluefin_spot::oracle {
-    use std::vector;
     use std::u64;
 
     // integer mate modules
@@ -24,23 +23,20 @@ module bluefin_spot::oracle {
     use bluefin_spot::errors;
     use bluefin_spot::utils;
 
-    friend bluefin_spot::pool;
-    #[test_only]
-    friend bluefin_spot::test_oracle;
 
     //===========================================================//
     //                           Structs                         //
     //===========================================================//
 
 
-    struct ObservationManager has copy, drop, store {
+    public struct ObservationManager has copy, drop, store {
         observations: vector<Observation>,
         observation_index: u64,  
         observation_cardinality: u64,  
         observation_cardinality_next: u64, 
     }
 
-    struct Observation has copy, drop, store {
+    public struct Observation has copy, drop, store {
         timestamp: u64,
         tick_cumulative: I64,
         seconds_per_liquidity_cumulative: u256,
@@ -55,14 +51,14 @@ module bluefin_spot::oracle {
     /// Creates an Observation Manager
     public fun initialize_manager(timestamp: u64): ObservationManager {
 
-        let manager = ObservationManager {
+        let mut manager = ObservationManager {
             observation_index: 0,  
             observation_cardinality: 1,  
             observation_cardinality_next: 1, 
             observations: vector::empty<Observation>()
         };
 
-        let observation = default_observation();
+        let mut observation = default_observation();
         observation.timestamp = timestamp;
         observation.initialized = true;
 
@@ -87,7 +83,7 @@ module bluefin_spot::oracle {
 
         if (seconds_ago == 0) {
             
-            let observation = get_observation(manager, manager.observation_index);
+            let mut observation = get_observation(manager, manager.observation_index);
 
             if (observation.timestamp != timestamp) {
                 // let observation_reference = &observation;
@@ -155,7 +151,7 @@ module bluefin_spot::oracle {
 
     public fun get_surrounding_observations(manager: &ObservationManager, target: u64, current_tick_index: I32, liquidity: u128) : (Observation, Observation) {
 
-        let observation = get_observation(manager, manager.observation_index);
+        let mut observation = get_observation(manager, manager.observation_index);
 
         if (observation.timestamp <= target) {
 
@@ -180,11 +176,11 @@ module bluefin_spot::oracle {
     public fun binary_search(manager: &ObservationManager, timestamp: u64) : (Observation, Observation) {
 
         let index = (manager.observation_index + 1) % manager.observation_cardinality;
-        let start = index;
-        let end = index+ manager.observation_cardinality - 1;
+        let mut start = index;
+        let mut end = index+ manager.observation_cardinality - 1;
 
-        let at_or_after;
-        let before_or_at;
+        let mut at_or_after;
+        let mut before_or_at;
         
         loop {
             let mid = (start + end) / 2;
@@ -212,7 +208,7 @@ module bluefin_spot::oracle {
         (before_or_at, at_or_after)
     }
  
-    public (friend) fun update(manager: &mut ObservationManager, current_tick_index: I32, liquidity: u128, target: u64) {
+    public(package) fun update(manager: &mut ObservationManager, current_tick_index: I32, liquidity: u128, target: u64) {
 
         let observation = vector::borrow(&manager.observations, manager.observation_index);
 
@@ -234,9 +230,9 @@ module bluefin_spot::oracle {
         manager.observation_cardinality = cardinality_updated;
     }
 
-    public (friend) fun grow(manager: &mut ObservationManager, new_cardinality: u64) : (u64, u64) {
+    public(package) fun grow(manager: &mut ObservationManager, new_cardinality: u64) : (u64, u64) {
         
-        let current_cardinality = manager.observation_cardinality_next;
+        let mut current_cardinality = manager.observation_cardinality_next;
 
         // while current_cardinality < new_cardinality 
         while (current_cardinality < new_cardinality) {

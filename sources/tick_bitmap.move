@@ -18,10 +18,7 @@ module bluefin_spot::tick_bitmap {
     use bluefin_spot::i32H;
     
     // friends
-    friend bluefin_spot::pool;
 
-    #[test_only]
-    friend bluefin_spot::test_tick_bitmap;
     
     public fun cast_to_u8(index: I32) : u8 {
         let lib_index = i32H::mate_to_lib(index);
@@ -30,7 +27,7 @@ module bluefin_spot::tick_bitmap {
         ((i32::abs_u32(i32::add(lib_index, i32::from(256))) & 255) as u8)
     }
     
-    public(friend) fun flip_tick(bitmap: &mut Table<I32, u256>, index: I32, tick_spacing: u32) {
+    public(package) fun flip_tick(bitmap: &mut Table<I32, u256>, index: I32, tick_spacing: u32) {
 
         let lib_index = i32H::mate_to_lib(index);
 
@@ -45,7 +42,7 @@ module bluefin_spot::tick_bitmap {
         let tick_spacing_i32 = i32::from(tick_spacing);
         let lib_tick = i32H::mate_to_lib(tick);
         
-        let compressed = i32::div(lib_tick, tick_spacing_i32);
+        let mut compressed = i32::div(lib_tick, tick_spacing_i32);
         
         if (i32::is_neg(lib_tick) && (i32::abs_u32(lib_tick) % tick_spacing) != 0) {
             compressed = i32::sub(compressed, i32::from(1));

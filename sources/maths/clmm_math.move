@@ -325,18 +325,18 @@ module bluefin_spot::clmm_math {
         a2b: bool,
         by_amount_in: bool
     ): (u64, u64, u128, u64) {
-        let next_sqrt_price = target_sqrt_price;
-        let amount_in: u64 = 0;
-        let amount_out: u64 = 0;
-        let fee_amount: u64 = 0;
-        if (liquidity == 0) {
+        let mut next_sqrt_price = target_sqrt_price;
+        let mut amount_in: u64 = 0;
+        let mut amount_out: u64 = 0;
+        let mut fee_amount: u64 = 0;
+        if (liquidity == 0 || current_sqrt_price == target_sqrt_price) {
             return (
                 amount_in,
                 amount_out,
                 next_sqrt_price,
                 fee_amount,
             )
-        };
+        };  
         if (a2b) {
             assert!(current_sqrt_price >= target_sqrt_price, EINVALID_SQRT_PRICE_INPUT)
         } else {
@@ -445,9 +445,9 @@ module bluefin_spot::clmm_math {
     ): (u128, u64, u64) {
         let lower_price = tick_math::get_sqrt_price_at_tick(lower_index);
         let upper_price = tick_math::get_sqrt_price_at_tick(upper_index);
-        let amount_a: u64 = 0;
-        let amount_b: u64 = 0;
-        let _liquidity: u128 = 0;
+        let mut amount_a: u64 = 0;
+        let mut amount_b: u64 = 0;
+        let mut _liquidity: u128 = 0;
         if (is_fixed_a) {
             amount_a = amount;
             if (i32H::lt(current_tick_index, lower_index)) {
@@ -1040,6 +1040,156 @@ module bluefin_spot::clmm_math {
             false, // b2a
             true
         );
+    }
+
+    #[test]
+    fun test_compute_swap_step_equal_prices_a2b_by_amount_in() {
+        let sqrt_price = 10u128 << 64;
+        let liquidity = 1000000u128;
+        let amount = 10000u64;
+        let fee_rate = 3000u64; // 0.3%
+        
+        // Test A to B swap when current_sqrt_price == target_sqrt_price
+        // This should return early with all zeros
+        let (amount_in, amount_out, next_sqrt_price, fee_amount) = compute_swap_step(
+            sqrt_price,
+            sqrt_price, // Equal prices
+            liquidity,
+            amount,
+            fee_rate,
+            true,  // a2b
+            true   // by_amount_in
+        );
+        
+        // When prices are equal, no swap occurs
+        assert!(amount_in == 0, 0);
+        assert!(amount_out == 0, 1);
+        assert!(next_sqrt_price == sqrt_price, 2);
+        assert!(fee_amount == 0, 3);
+    }
+
+    #[test]
+    fun test_compute_swap_step_equal_prices_a2b_by_amount_out() {
+        let sqrt_price = 10u128 << 64;
+        let liquidity = 1000000u128;
+        let amount = 10000u64;
+        let fee_rate = 3000u64; // 0.3%
+        
+        // Test A to B swap when current_sqrt_price == target_sqrt_price (by_amount_out)
+        let (amount_in, amount_out, next_sqrt_price, fee_amount) = compute_swap_step(
+            sqrt_price,
+            sqrt_price, // Equal prices
+            liquidity,
+            amount,
+            fee_rate,
+            true,  // a2b
+            false  // by_amount_out
+        );
+        
+        // When prices are equal, no swap occurs
+        assert!(amount_in == 0, 0);
+        assert!(amount_out == 0, 1);
+        assert!(next_sqrt_price == sqrt_price, 2);
+        assert!(fee_amount == 0, 3);
+    }
+
+    #[test]
+    fun test_compute_swap_step_equal_prices_b2a_by_amount_in() {
+        let sqrt_price = 10u128 << 64;
+        let liquidity = 1000000u128;
+        let amount = 10000u64;
+        let fee_rate = 3000u64; // 0.3%
+        
+        // Test B to A swap when current_sqrt_price == target_sqrt_price
+        // This should return early with all zeros (previously would fail assertion)
+        let (amount_in, amount_out, next_sqrt_price, fee_amount) = compute_swap_step(
+            sqrt_price,
+            sqrt_price, // Equal prices
+            liquidity,
+            amount,
+            fee_rate,
+            false, // b2a
+            true   // by_amount_in
+        );
+        
+        // When prices are equal, no swap occurs
+        assert!(amount_in == 0, 0);
+        assert!(amount_out == 0, 1);
+        assert!(next_sqrt_price == sqrt_price, 2);
+        assert!(fee_amount == 0, 3);
+    }
+
+    #[test]
+    fun test_compute_swap_step_equal_prices_b2a_by_amount_out() {
+        let sqrt_price = 10u128 << 64;
+        let liquidity = 1000000u128;
+        let amount = 10000u64;
+        let fee_rate = 3000u64; // 0.3%
+        
+        // Test B to A swap when current_sqrt_price == target_sqrt_price (by_amount_out)
+        let (amount_in, amount_out, next_sqrt_price, fee_amount) = compute_swap_step(
+            sqrt_price,
+            sqrt_price, // Equal prices
+            liquidity,
+            amount,
+            fee_rate,
+            false, // b2a
+            false  // by_amount_out
+        );
+        
+        // When prices are equal, no swap occurs
+        assert!(amount_in == 0, 0);
+        assert!(amount_out == 0, 1);
+        assert!(next_sqrt_price == sqrt_price, 2);
+        assert!(fee_amount == 0, 3);
+    }
+
+    #[test]
+    fun test_compute_swap_step_equal_prices_with_different_values() {
+        // Test with different sqrt_price values to ensure the early return works
+        // regardless of the actual price value
+        let sqrt_price_1 = 1u128 << 64;
+        let sqrt_price_2 = 5u128 << 64;
+        let sqrt_price_3 = 100u128 << 64;
+        let liquidity = 500000u128;
+        let amount = 5000u64;
+        let fee_rate = 2000u64; // 0.2%
+        
+        // Test A to B with different price values
+        let (amount_in, amount_out, next_sqrt_price, fee_amount) = compute_swap_step(
+            sqrt_price_1,
+            sqrt_price_1,
+            liquidity,
+            amount,
+            fee_rate,
+            true,  // a2b
+            true
+        );
+        assert!(amount_in == 0 && amount_out == 0 && fee_amount == 0 && next_sqrt_price == sqrt_price_1, 0);
+        
+        // Test B to A with different price values
+        let (amount_in, amount_out, next_sqrt_price, fee_amount) = compute_swap_step(
+            sqrt_price_2,
+            sqrt_price_2,
+            liquidity,
+            amount,
+            fee_rate,
+            false, // b2a
+            true
+        );
+        assert!(amount_in == 0 && amount_out == 0 && fee_amount == 0 && next_sqrt_price == sqrt_price_2, 1);
+        
+        // Test with higher price value
+        let (amount_in, amount_out, next_sqrt_price, fee_amount) = compute_swap_step(
+            sqrt_price_3,
+            sqrt_price_3,
+            liquidity,
+            amount,
+            fee_rate,
+            true,  // a2b
+            false  // by_amount_out
+        );
+        assert!(amount_in == 0 && amount_out == 0 && fee_amount == 0 && next_sqrt_price == sqrt_price_3, 2);
     }
 
     #[test]

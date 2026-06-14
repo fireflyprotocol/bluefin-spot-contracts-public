@@ -1,16 +1,6 @@
-/*
-  Copyright (c) 2025 Bluefin Labs Inc.
-  Proprietary Smart Contract License – All Rights Reserved.
-
-  This source code is provided for transparency and verification only.
-  Use, modification, reproduction, or redeployment of this code 
-  requires prior written permission from the Bluefin Labs Inc.
-*/
-
 #[test_only]
 module bluefin_spot::test_event {
     use sui::test_scenario;
-    use sui::object::{Self, ID};
     use std::string::{Self, String};
     use integer_mate::i32::{Self as MateI32, I32 as MateI32Type};
     use integer_mate::i128::{Self as MateI128, I128 as MateI128Type};

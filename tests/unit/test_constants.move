@@ -1,12 +1,3 @@
-/*
-  Copyright (c) 2025 Bluefin Labs Inc.
-  Proprietary Smart Contract License – All Rights Reserved.
-
-  This source code is provided for transparency and verification only.
-  Use, modification, reproduction, or redeployment of this code 
-  requires prior written permission from the Bluefin Labs Inc.
-*/
-
 #[test_only]
 module bluefin_spot::test_constants {
     use bluefin_spot::constants;
@@ -65,8 +56,8 @@ module bluefin_spot::test_constants {
     #[test]
     fun test_q64_power_of_two() {
         // Q64 should be exactly 2^64
-        let expected_q64: u128 = 1;
-        let i = 0;
+        let mut expected_q64: u128 = 1;
+        let mut i = 0u64;
         while (i < 64) {
             expected_q64 = expected_q64 * 2;
             i = i + 1;
@@ -188,8 +179,8 @@ module bluefin_spot::test_constants {
         let blue_reward_bytes = string::as_bytes(&blue_reward);
         
         // Should contain "::" separators
-        let has_double_colon = false;
-        let i = 0;
+        let mut has_double_colon = false;
+        let mut i = 0;
         let len = std::vector::length(blue_reward_bytes);
         while (i < len - 1) {
             if (*std::vector::borrow(blue_reward_bytes, i) == 58 && // ':'

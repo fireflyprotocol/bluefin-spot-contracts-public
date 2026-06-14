@@ -8,11 +8,7 @@
 */
 
 module bluefin_spot::position {
-    use sui::object::{Self, UID, ID};
-    use sui::tx_context::{Self, TxContext};
     use std::string::{Self, String};
-    use std::vector;
-    use sui::transfer;
     use sui::package;
     use sui::display;
 
@@ -28,9 +24,6 @@ module bluefin_spot::position {
     use bluefin_spot::utils;
 
     // friend Modules
-    friend bluefin_spot::pool;
-    #[test_only]
-    friend bluefin_spot::test_position;
 
     //===========================================================//
     //                          Structs                          //
@@ -38,11 +31,11 @@ module bluefin_spot::position {
 
     // One time witness (OTW)
     #[allow(unused_field)]
-    struct POSITION has drop {
+    public struct POSITION has drop {
         dummy_field: bool
     }
 
-    struct Position has key, store {
+    public struct Position has key, store {
         id: UID,
         pool_id: ID,
         lower_tick: I32,
@@ -65,7 +58,7 @@ module bluefin_spot::position {
         reward_infos: vector<PositionRewardInfo>
     }
 
-    struct PositionRewardInfo has copy, drop, store {
+    public struct PositionRewardInfo has copy, drop, store {
         reward_growth_inside_last: u128,
         coins_owed_reward: u64,
     }
@@ -77,7 +70,7 @@ module bluefin_spot::position {
 
     fun init(otw: POSITION, ctx: &mut TxContext) {
 
-        let keys = vector::empty<String>();
+        let mut keys = vector::empty<String>();
         vector::push_back(&mut keys, string::utf8(b"name"));
         vector::push_back(&mut keys, string::utf8(b"id"));
         vector::push_back(&mut keys, string::utf8(b"pool"));
@@ -89,7 +82,7 @@ module bluefin_spot::position {
         vector::push_back(&mut keys, string::utf8(b"project_url"));
         vector::push_back(&mut keys, string::utf8(b"creator"));
 
-        let values = vector::empty<String>();
+        let mut values = vector::empty<String>();
         vector::push_back(&mut values, string::utf8(b"{name}"));
         vector::push_back(&mut values, string::utf8(b"{id}"));
         vector::push_back(&mut values, string::utf8(b"{pool_id}"));
@@ -102,7 +95,7 @@ module bluefin_spot::position {
         vector::push_back(&mut values, string::utf8(b"Bluefin"));
         
         let pub = package::claim<POSITION>(otw, ctx);
-        let display = display::new_with_fields<Position>(&pub, keys, values, ctx);
+        let mut display = display::new_with_fields<Position>(&pub, keys, values, ctx);
         display::update_version(&mut display);
 
         transfer::public_transfer(pub, tx_context::sender(ctx));
@@ -147,8 +140,8 @@ module bluefin_spot::position {
     }
 
     public fun is_empty(position: &Position) : bool {
-        let rewards_empty = true;
-        let current_index = 0;
+        let mut rewards_empty = true;
+        let mut current_index = 0;
         while (current_index < vector::length<PositionRewardInfo>(&position.reward_infos)) {
             if (vector::borrow<PositionRewardInfo>(&position.reward_infos, current_index).coins_owed_reward != 0) {
                 rewards_empty = false;
@@ -169,7 +162,7 @@ module bluefin_spot::position {
     //===========================================================//
 
 
-    public (friend) fun new(
+    public(package) fun new(
         pool_id: ID, 
         pool_name: String,
         image_url: String,
@@ -203,7 +196,7 @@ module bluefin_spot::position {
         }
     }
 
-    public (friend) fun del(position: Position): (ID, ID, I32, I32) {
+    public(package) fun del(position: Position): (ID, ID, I32, I32) {
         let position_id = object::id(&position);
 
         let Position {
@@ -233,17 +226,17 @@ module bluefin_spot::position {
     }
 
     /// Sets the fees for provided position to the provided amounts
-    public (friend) fun set_fee_amounts(position: &mut Position, fee_a: u64, fee_b: u64){
+    public(package) fun set_fee_amounts(position: &mut Position, fee_a: u64, fee_b: u64){
         position.token_a_fee = fee_a;
         position.token_b_fee = fee_b;
     }
 
-    public(friend) fun decrease_reward_amount(position: &mut Position, index : u64, reward_amount: u64) {
+    public(package) fun decrease_reward_amount(position: &mut Position, index : u64, reward_amount: u64) {
         let pos_reward_info = get_mutable_reward_info(position, index);
         pos_reward_info.coins_owed_reward = pos_reward_info.coins_owed_reward - reward_amount;
     }
 
-    public(friend) fun update(position: &mut Position, liquidity_delta: I128, fee_growth_inside_a: u128, fee_growth_inside_b: u128, reward_growths_inside: vector<u128>){
+    public(package) fun update(position: &mut Position, liquidity_delta: I128, fee_growth_inside_a: u128, fee_growth_inside_b: u128, reward_growths_inside: vector<u128>){
 
         
         let liquidity = if (i128H::eq(liquidity_delta, i128::zero())) {
@@ -277,7 +270,7 @@ module bluefin_spot::position {
 
     }
 
-    public(friend) fun add_reward_info(position: &mut Position) {
+    public(package) fun add_reward_info(position: &mut Position) {
         vector::push_back<PositionRewardInfo>(&mut position.reward_infos, PositionRewardInfo {
             reward_growth_inside_last : 0, 
             coins_owed_reward         : 0,
@@ -290,20 +283,20 @@ module bluefin_spot::position {
     //===========================================================//
     
     fun create_position_name(pool_name: String): String {
-        let name = string::utf8(b"Bluefin Position, ");
+        let mut name = string::utf8(b"Bluefin Position, ");
         string::append(&mut name, pool_name);
         name
     }
 
     fun create_position_description(pool_name: String): String {
-        let description = string::utf8(b"This NFT represents a liquidity position of a Bluefin ");
+        let mut description = string::utf8(b"This NFT represents a liquidity position of a Bluefin ");
         string::append(&mut description, pool_name);
         string::append(&mut description, string::utf8(b" pool. The owner of this NFT can modify or redeem the position"));
         description
     }
 
     fun update_reward_infos(position: &mut Position, reward_growths_inside: vector<u128>) {
-        let current_index = 0;
+        let mut current_index = 0;
         let pos_liquidity = position.liquidity;
 
         while (current_index < vector::length<u128>(&reward_growths_inside)) {

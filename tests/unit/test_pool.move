@@ -1,24 +1,11 @@
-/*
-  Copyright (c) 2025 Bluefin Labs Inc.
-  Proprietary Smart Contract License – All Rights Reserved.
-
-  This source code is provided for transparency and verification only.
-  Use, modification, reproduction, or redeployment of this code 
-  requires prior written permission from the Bluefin Labs Inc.
-*/
-
 #[test_only]
 module bluefin_spot::test_pool {
     use std::string;
-    use std::vector;
 
     use sui::test_scenario::{Self};
-    use sui::transfer;
-    use sui::tx_context;
     use sui::balance;
     use sui::clock::{Self, Clock};
-    use sui::coin;
-    
+
     
     use bluefin_spot::admin::{Self, AdminCap};
     use bluefin_spot::test_utils::{Self, BLUE, USDC};
@@ -32,11 +19,11 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_open_position() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             let position = pool::open_position<BLUE, USDC>(
@@ -57,11 +44,11 @@ module bluefin_spot::test_pool {
     #[test]
     #[expected_failure(abort_code = 1002, location = bluefin_spot::pool)]
     fun test_open_position_with_invalid_ticks() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             let position = pool::open_position<BLUE, USDC>(
@@ -81,11 +68,11 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_provide_liquidity() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             // open position first
             test_utils::open_position_in_test_scenario(&mut scenario, &mut pool, test_utils::alice_address());
             test_scenario::return_shared(pool);
@@ -98,10 +85,10 @@ module bluefin_spot::test_pool {
             let coin_a = balance::create_for_testing<BLUE>(10000000000); // 10 Blue
             let coin_b = balance::create_for_testing<USDC>(1000000); // 1 USDC
 
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
+            let mut position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
             let (_,_,balance_a,balance_b) = pool::add_liquidity<BLUE, USDC>(
                 &clock,
                 &protocol_config,
@@ -123,18 +110,18 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_close_position() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             // open position first
             test_utils::open_position_in_test_scenario(&mut scenario, &mut pool,test_utils::alice_address());
             test_scenario::return_shared(pool);
         };
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             let position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
@@ -154,21 +141,21 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_remove_liquidity() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             // open position first
             test_utils::open_position_and_provide_liquidity_in_test_scenario(&mut scenario, &mut pool, test_utils::alice_address());
             test_scenario::return_shared(pool);
         };
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
+            let mut position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
             let (_,_,balance_a,balance_b) = pool::remove_liquidity<BLUE, USDC>(
                 &protocol_config,
                 &mut pool,
@@ -188,18 +175,18 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_perform_swap() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             // open position first
             test_utils::open_position_and_provide_liquidity_in_test_scenario(&mut scenario, &mut pool, test_utils::alice_address());
             test_scenario::return_shared(pool);
         };
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             // create some test coins
@@ -229,9 +216,9 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_create_pool() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
-        let clock = clock::create_for_testing(test_scenario::ctx(&mut scenario));
+        let mut clock = clock::create_for_testing(test_scenario::ctx(&mut scenario));
         clock::set_for_testing(&mut clock, test_utils::start_time());
         clock::share_for_testing(clock);
         config::init_test(test_scenario::ctx(&mut scenario));
@@ -244,7 +231,7 @@ module bluefin_spot::test_pool {
         {
             let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario, test_utils::admin_address());
             let clock = test_scenario::take_shared<Clock>(&scenario);
-            let config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut config = test_scenario::take_shared<GlobalConfig>(&scenario);
            
             let icon_url = b"https://bluefin.io/images/nfts/default.gif";
             let coin_a_symbol = b"BLUE";
@@ -293,9 +280,9 @@ module bluefin_spot::test_pool {
     #[test]
     #[expected_failure(abort_code = 1038, location = bluefin_spot::pool)]
     fun should_fail_pool_creation_as_fee_creation_coin_no_supported() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
-        let clock = clock::create_for_testing(test_scenario::ctx(&mut scenario));
+        let mut clock = clock::create_for_testing(test_scenario::ctx(&mut scenario));
         clock::set_for_testing(&mut clock, test_utils::start_time());
         clock::share_for_testing(clock);
         config::init_test(test_scenario::ctx(&mut scenario));
@@ -308,7 +295,7 @@ module bluefin_spot::test_pool {
         {
             let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario, test_utils::admin_address());
             let clock = test_scenario::take_shared<Clock>(&scenario);
-            let config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut config = test_scenario::take_shared<GlobalConfig>(&scenario);
            
             let icon_url = b"https://bluefin.io/images/nfts/default.gif";
             let coin_a_symbol = b"BLUE";
@@ -350,9 +337,9 @@ module bluefin_spot::test_pool {
     #[test]
     #[expected_failure(abort_code = 1039, location = bluefin_spot::pool)]
     fun should_fail_pool_creation_as_fee_creation_amount_incorrect() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
-        let clock = clock::create_for_testing(test_scenario::ctx(&mut scenario));
+        let mut clock = clock::create_for_testing(test_scenario::ctx(&mut scenario));
         clock::set_for_testing(&mut clock, test_utils::start_time());
         clock::share_for_testing(clock);
         config::init_test(test_scenario::ctx(&mut scenario));
@@ -365,7 +352,7 @@ module bluefin_spot::test_pool {
         {
             let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario, test_utils::admin_address());
             let clock = test_scenario::take_shared<Clock>(&scenario);
-            let config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut config = test_scenario::take_shared<GlobalConfig>(&scenario);
            
             let icon_url = b"https://bluefin.io/images/nfts/default.gif";
             let coin_a_symbol = b"BLUE";
@@ -406,9 +393,9 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun should_use_default_icon_url_while_pool_creation() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
-        let clock = clock::create_for_testing(test_scenario::ctx(&mut scenario));
+        let mut clock = clock::create_for_testing(test_scenario::ctx(&mut scenario));
         clock::set_for_testing(&mut clock, test_utils::start_time());
         clock::share_for_testing(clock);
         config::init_test(test_scenario::ctx(&mut scenario));
@@ -421,7 +408,7 @@ module bluefin_spot::test_pool {
         {
             let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario, test_utils::admin_address());
             let clock = test_scenario::take_shared<Clock>(&scenario);
-            let config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut config = test_scenario::take_shared<GlobalConfig>(&scenario);
            
             let icon_url = b"";
             let coin_a_symbol = b"BLUE";
@@ -462,19 +449,19 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_flash_swap_and_repay() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::open_position_and_provide_liquidity_in_test_scenario(&mut scenario, &mut pool, test_utils::alice_address());
             test_scenario::return_shared(pool);
         };
         
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             
@@ -514,19 +501,19 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_swap_exact_output() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::open_position_and_provide_liquidity_in_test_scenario(&mut scenario, &mut pool, test_utils::alice_address());
             test_scenario::return_shared(pool);
         };
         
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             
@@ -558,19 +545,19 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_swap_b2a() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::open_position_and_provide_liquidity_in_test_scenario(&mut scenario, &mut pool, test_utils::alice_address());
             test_scenario::return_shared(pool);
         };
         
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             
@@ -602,19 +589,19 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_collect_fee() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::open_position_and_provide_liquidity_in_test_scenario(&mut scenario, &mut pool, test_utils::alice_address());
             test_scenario::return_shared(pool);
         };
         
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             
@@ -644,10 +631,10 @@ module bluefin_spot::test_pool {
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
+            let mut position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
             
             let (fee_a, fee_b, balance_a, balance_b) = pool::collect_fee<BLUE, USDC>(
                 &clock,
@@ -672,12 +659,12 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_calculate_swap_results() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::open_position_and_provide_liquidity_in_test_scenario(&mut scenario, &mut pool, test_utils::alice_address());
             test_scenario::return_shared(pool);
         };
@@ -708,7 +695,7 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_pool_getters() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
@@ -745,22 +732,22 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_add_liquidity_with_fixed_amount_coin_a() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::open_position_in_test_scenario(&mut scenario, &mut pool, test_utils::alice_address());
             test_scenario::return_shared(pool);
         };
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
+            let mut position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
             
             let coin_a = balance::create_for_testing<BLUE>(5_000_000_000);
             let coin_b = balance::create_for_testing<USDC>(1_000_000);
@@ -794,22 +781,22 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_add_liquidity_with_fixed_amount_coin_b() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::open_position_in_test_scenario(&mut scenario, &mut pool, test_utils::alice_address());
             test_scenario::return_shared(pool);
         };
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
+            let mut position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
             
             let coin_a = balance::create_for_testing<BLUE>(10_000_000_000);
             let coin_b = balance::create_for_testing<USDC>(500_000);
@@ -842,12 +829,12 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_pool_manager_operations() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::admin_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             
             let current_manager = pool::get_pool_manager(&pool);
@@ -872,7 +859,7 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_get_liquidity_by_amount() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
@@ -912,12 +899,12 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_fetch_provided_ticks() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::open_position_and_provide_liquidity_in_test_scenario(&mut scenario, &mut pool, test_utils::alice_address());
             test_scenario::return_shared(pool);
         };
@@ -926,7 +913,7 @@ module bluefin_spot::test_pool {
         {
             let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             
-            let ticks = vector::empty<u32>();
+            let mut ticks = vector::empty<u32>();
             vector::push_back(&mut ticks, test_utils::blue_usdc_pos_lower_tick());
             vector::push_back(&mut ticks, test_utils::blue_usdc_pos_upper_tick());
             
@@ -943,12 +930,12 @@ module bluefin_spot::test_pool {
     #[test]
     #[expected_failure(abort_code = 1012, location = bluefin_spot::pool)]
     fun test_swap_when_pool_paused() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::open_position_and_provide_liquidity_in_test_scenario(&mut scenario, &mut pool, test_utils::alice_address());
             test_scenario::return_shared(pool);
         };
@@ -956,19 +943,32 @@ module bluefin_spot::test_pool {
         test_scenario::next_tx(&mut scenario, test_utils::admin_address());
         {
             let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario, test_utils::admin_address());
-            let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
-            
-            admin::update_pool_pause_status<BLUE, USDC>(&admin_cap, &protocol_config, &mut pool, true);
-            
+            let mut protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+
+            // init guardian with admin as the initial guardian (mints the cap to admin)
+            admin::init_guardian(&admin_cap, &mut protocol_config, test_utils::admin_address(), test_scenario::ctx(&mut scenario));
+
             test_scenario::return_to_address<AdminCap>(test_utils::admin_address(), admin_cap);
+            test_scenario::return_shared(protocol_config);
+        };
+
+        test_scenario::next_tx(&mut scenario, test_utils::admin_address());
+        {
+            let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let cap = test_scenario::take_from_address<bluefin_spot::guardian::GuardianCap>(&scenario, test_utils::admin_address());
+
+            // pause the pool using the freshly-minted cap
+            admin::pause_pool<BLUE, USDC>(&protocol_config, &mut pool, &cap);
+
+            test_scenario::return_to_address<bluefin_spot::guardian::GuardianCap>(test_utils::admin_address(), cap);
             test_scenario::return_shared(protocol_config);
             test_scenario::return_shared(pool);
         };
         
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             
@@ -1002,19 +1002,19 @@ module bluefin_spot::test_pool {
     #[test]
     #[expected_failure(abort_code = 1029, location = bluefin_spot::pool)]
     fun test_swap_zero_amount() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::open_position_and_provide_liquidity_in_test_scenario(&mut scenario, &mut pool, test_utils::alice_address());
             test_scenario::return_shared(pool);
         };
         
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             
@@ -1048,19 +1048,19 @@ module bluefin_spot::test_pool {
     #[test]
     #[expected_failure(abort_code = 1018, location = bluefin_spot::pool)]
     fun test_close_position_with_liquidity() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::open_position_and_provide_liquidity_in_test_scenario(&mut scenario, &mut pool, test_utils::alice_address());
             test_scenario::return_shared(pool);
         };
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             let position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
@@ -1082,9 +1082,9 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_create_pool_and_get_object() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
-        let clock = clock::create_for_testing(test_scenario::ctx(&mut scenario));
+        let mut clock = clock::create_for_testing(test_scenario::ctx(&mut scenario));
         clock::set_for_testing(&mut clock, test_utils::start_time());
         clock::share_for_testing(clock);
         config::init_test(test_scenario::ctx(&mut scenario));
@@ -1093,7 +1093,7 @@ module bluefin_spot::test_pool {
         {
             let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario, test_utils::admin_address());
             let clock = test_scenario::take_shared<Clock>(&scenario);
-            let config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut config = test_scenario::take_shared<GlobalConfig>(&scenario);
             
             let fee_coin = balance::create_for_testing<USDC>(10000000);
             admin::set_pool_creation_fee<USDC>(&admin_cap, &mut config, 10000000, test_scenario::ctx(&mut scenario));
@@ -1129,7 +1129,7 @@ module bluefin_spot::test_pool {
     #[test]
     #[expected_failure(abort_code = 1036, location = bluefin_spot::pool)]
     fun test_deprecated_new_function() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         let clock = clock::create_for_testing(test_scenario::ctx(&mut scenario));
         
         pool::new<BLUE, USDC>(
@@ -1154,7 +1154,7 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_reward_infos_length() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
@@ -1172,19 +1172,19 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_multiple_positions_in_pool() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::open_position_and_provide_liquidity_in_test_scenario(&mut scenario, &mut pool, test_utils::alice_address());
             test_scenario::return_shared(pool);
         };
         
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::open_position_and_provide_liquidity_in_test_scenario(&mut scenario, &mut pool, test_utils::bob_address());
             test_scenario::return_shared(pool);
         };
@@ -1202,22 +1202,22 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_remove_partial_liquidity() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::open_position_and_provide_liquidity_in_test_scenario(&mut scenario, &mut pool, test_utils::alice_address());
             test_scenario::return_shared(pool);
         };
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
+            let mut position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
             
             let half_liquidity = test_utils::blue_usdc_liquidity() / 2;
             let (_,_,balance_a,balance_b) = pool::remove_liquidity<BLUE, USDC>(
@@ -1241,19 +1241,19 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_large_swap_crossing_ticks() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::open_position_and_provide_liquidity_in_test_scenario(&mut scenario, &mut pool, test_utils::alice_address());
             test_scenario::return_shared(pool);
         };
         
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             
@@ -1286,19 +1286,19 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_swap_with_tight_price_limit() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::open_position_and_provide_liquidity_in_test_scenario(&mut scenario, &mut pool, test_utils::alice_address());
             test_scenario::return_shared(pool);
         };
         
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             
@@ -1331,9 +1331,9 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_create_pool_with_different_tick_spacing() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
-        let clock = clock::create_for_testing(test_scenario::ctx(&mut scenario));
+        let mut clock = clock::create_for_testing(test_scenario::ctx(&mut scenario));
         clock::set_for_testing(&mut clock, test_utils::start_time());
         clock::share_for_testing(clock);
         config::init_test(test_scenario::ctx(&mut scenario));
@@ -1342,7 +1342,7 @@ module bluefin_spot::test_pool {
         {
             let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario, test_utils::admin_address());
             let clock = test_scenario::take_shared<Clock>(&scenario);
-            let config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut config = test_scenario::take_shared<GlobalConfig>(&scenario);
             
             let fee_coin = balance::create_for_testing<USDC>(10000000);
             admin::set_pool_creation_fee<USDC>(&admin_cap, &mut config, 10000000, test_scenario::ctx(&mut scenario));
@@ -1380,9 +1380,9 @@ module bluefin_spot::test_pool {
     #[test]
     #[expected_failure(abort_code = 1026, location = bluefin_spot::pool)]
     fun test_create_pool_with_invalid_tick_spacing() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
-        let clock = clock::create_for_testing(test_scenario::ctx(&mut scenario));
+        let mut clock = clock::create_for_testing(test_scenario::ctx(&mut scenario));
         clock::set_for_testing(&mut clock, test_utils::start_time());
         clock::share_for_testing(clock);
         config::init_test(test_scenario::ctx(&mut scenario));
@@ -1391,7 +1391,7 @@ module bluefin_spot::test_pool {
         {
             let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario, test_utils::admin_address());
             let clock = test_scenario::take_shared<Clock>(&scenario);
-            let config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut config = test_scenario::take_shared<GlobalConfig>(&scenario);
             
             let fee_coin = balance::create_for_testing<USDC>(10000000);
             admin::set_pool_creation_fee<USDC>(&admin_cap, &mut config, 10000000, test_scenario::ctx(&mut scenario));
@@ -1425,9 +1425,9 @@ module bluefin_spot::test_pool {
     #[test]
     #[expected_failure(abort_code = 1027, location = bluefin_spot::pool)]
     fun test_create_pool_with_invalid_fee_rate() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
-        let clock = clock::create_for_testing(test_scenario::ctx(&mut scenario));
+        let mut clock = clock::create_for_testing(test_scenario::ctx(&mut scenario));
         clock::set_for_testing(&mut clock, test_utils::start_time());
         clock::share_for_testing(clock);
         config::init_test(test_scenario::ctx(&mut scenario));
@@ -1436,7 +1436,7 @@ module bluefin_spot::test_pool {
         {
             let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario, test_utils::admin_address());
             let clock = test_scenario::take_shared<Clock>(&scenario);
-            let config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut config = test_scenario::take_shared<GlobalConfig>(&scenario);
             
             let fee_coin = balance::create_for_testing<USDC>(10000000);
             admin::set_pool_creation_fee<USDC>(&admin_cap, &mut config, 10000000, test_scenario::ctx(&mut scenario));
@@ -1470,9 +1470,9 @@ module bluefin_spot::test_pool {
     #[test]
     #[expected_failure(abort_code = 1013, location = bluefin_spot::pool)]
     fun test_create_pool_with_same_coin_types() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
-        let clock = clock::create_for_testing(test_scenario::ctx(&mut scenario));
+        let mut clock = clock::create_for_testing(test_scenario::ctx(&mut scenario));
         clock::set_for_testing(&mut clock, test_utils::start_time());
         clock::share_for_testing(clock);
         config::init_test(test_scenario::ctx(&mut scenario));
@@ -1481,7 +1481,7 @@ module bluefin_spot::test_pool {
         {
             let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario, test_utils::admin_address());
             let clock = test_scenario::take_shared<Clock>(&scenario);
-            let config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut config = test_scenario::take_shared<GlobalConfig>(&scenario);
             
             let fee_coin = balance::create_for_testing<USDC>(10000000);
             admin::set_pool_creation_fee<USDC>(&admin_cap, &mut config, 10000000, test_scenario::ctx(&mut scenario));
@@ -1514,26 +1514,26 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_sequential_swaps() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::open_position_and_provide_liquidity_in_test_scenario(&mut scenario, &mut pool, test_utils::alice_address());
             test_scenario::return_shared(pool);
         };
         
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::perform_swap_in_test_scenario(&mut scenario, &mut pool, test_utils::bob_address());
             test_scenario::return_shared(pool);
         };
         
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             
@@ -1566,7 +1566,7 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_pool_sequence_number() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
@@ -1579,14 +1579,14 @@ module bluefin_spot::test_pool {
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::open_position_and_provide_liquidity_in_test_scenario(&mut scenario, &mut pool, test_utils::alice_address());
             test_scenario::return_shared(pool);
         };
         
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let seq_before = pool::sequence_number(&pool);
             
             test_utils::perform_swap_in_test_scenario(&mut scenario, &mut pool, test_utils::bob_address());
@@ -1602,7 +1602,7 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_coin_reserves() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
@@ -1620,14 +1620,14 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_pool_icon_url_update() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::admin_address());
         {
             let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario, test_utils::admin_address());
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             
             let new_url = string::utf8(b"https://new-url.com/icon.png");
             admin::set_pool_icon_url<BLUE, USDC>(&admin_cap, &protocol_config, &mut pool, new_url);
@@ -1643,7 +1643,7 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_protocol_fee_share() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
@@ -1661,7 +1661,7 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_is_reward_present() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
@@ -1679,22 +1679,22 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_close_position_after_removing_liquidity() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::open_position_and_provide_liquidity_in_test_scenario(&mut scenario, &mut pool, test_utils::alice_address());
             test_scenario::return_shared(pool);
         };
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
+            let mut position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
             
             let (_,_,balance_a,balance_b) = pool::remove_liquidity<BLUE, USDC>(
                 &protocol_config,
@@ -1714,7 +1714,7 @@ module bluefin_spot::test_pool {
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             let position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
@@ -1737,9 +1737,9 @@ module bluefin_spot::test_pool {
     #[test]
     #[expected_failure(abort_code = 1030, location = bluefin_spot::pool)]
     fun test_create_pool_at_max_sqrt_price() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         admin::test_init(test_scenario::ctx(&mut scenario));
-        let clock = clock::create_for_testing(test_scenario::ctx(&mut scenario));
+        let mut clock = clock::create_for_testing(test_scenario::ctx(&mut scenario));
         clock::set_for_testing(&mut clock, test_utils::start_time());
         clock::share_for_testing(clock);
         config::init_test(test_scenario::ctx(&mut scenario));
@@ -1748,7 +1748,7 @@ module bluefin_spot::test_pool {
         {
             let admin_cap = test_scenario::take_from_address<AdminCap>(&scenario, test_utils::admin_address());
             let clock = test_scenario::take_shared<Clock>(&scenario);
-            let config = test_scenario::take_shared<GlobalConfig>(&scenario);
+            let mut config = test_scenario::take_shared<GlobalConfig>(&scenario);
             
             let fee_coin = balance::create_for_testing<USDC>(10000000);
             admin::set_pool_creation_fee<USDC>(&admin_cap, &mut config, 10000000, test_scenario::ctx(&mut scenario));
@@ -1781,12 +1781,12 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_swap_result_getters() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::open_position_and_provide_liquidity_in_test_scenario(&mut scenario, &mut pool, test_utils::alice_address());
             test_scenario::return_shared(pool);
         };
@@ -1825,19 +1825,19 @@ module bluefin_spot::test_pool {
     #[test]
     #[expected_failure(abort_code = 1009, location = bluefin_spot::pool)]
     fun test_swap_with_invalid_price_limit_a2b() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::open_position_and_provide_liquidity_in_test_scenario(&mut scenario, &mut pool, test_utils::alice_address());
             test_scenario::return_shared(pool);
         };
         
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             
@@ -1871,19 +1871,19 @@ module bluefin_spot::test_pool {
     #[test]
     #[expected_failure(abort_code = 1009, location = bluefin_spot::pool)]
     fun test_swap_with_invalid_price_limit_b2a() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::open_position_and_provide_liquidity_in_test_scenario(&mut scenario, &mut pool, test_utils::alice_address());
             test_scenario::return_shared(pool);
         };
         
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             
@@ -1916,19 +1916,19 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_collect_fee_event_emission() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::open_position_and_provide_liquidity_in_test_scenario(&mut scenario, &mut pool, test_utils::alice_address());
             test_scenario::return_shared(pool);
         };
         
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             
@@ -1958,10 +1958,10 @@ module bluefin_spot::test_pool {
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
+            let mut position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
             
             let (fee_a, fee_b, balance_a, balance_b) = pool::collect_fee<BLUE, USDC>(
                 &clock,
@@ -1986,26 +1986,26 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_swap_crossing_multiple_ticks() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::open_position_and_provide_liquidity_in_test_scenario(&mut scenario, &mut pool, test_utils::alice_address());
             test_scenario::return_shared(pool);
         };
         
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::open_position_and_provide_liquidity_in_test_scenario(&mut scenario, &mut pool, test_utils::bob_address());
             test_scenario::return_shared(pool);
         };
         
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             
@@ -2038,22 +2038,22 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_liquidity_change_in_pool_state() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::open_position_in_test_scenario(&mut scenario, &mut pool, test_utils::alice_address());
             test_scenario::return_shared(pool);
         };
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
-            let position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
+            let mut position = test_scenario::take_from_address<Position>(&scenario, test_utils::alice_address());
             
             let coin_a = balance::create_for_testing<BLUE>(100_000_000_000);
             let coin_b = balance::create_for_testing<USDC>(10_000_000);
@@ -2078,7 +2078,7 @@ module bluefin_spot::test_pool {
         
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             
@@ -2116,19 +2116,19 @@ module bluefin_spot::test_pool {
 
     #[test]
     fun test_swap_changes_tick_index() {
-        let scenario = test_scenario::begin(test_utils::admin_address());
+        let mut scenario = test_scenario::begin(test_utils::admin_address());
         test_utils::create_pool_in_test_scenario(&mut scenario);
         
         test_scenario::next_tx(&mut scenario, test_utils::alice_address());
         {   
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             test_utils::open_position_and_provide_liquidity_in_test_scenario(&mut scenario, &mut pool, test_utils::alice_address());
             test_scenario::return_shared(pool);
         };
         
         test_scenario::next_tx(&mut scenario, test_utils::bob_address());
         {
-            let pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
+            let mut pool = test_scenario::take_shared<Pool<BLUE, USDC>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
             let protocol_config = test_scenario::take_shared<GlobalConfig>(&scenario);
             

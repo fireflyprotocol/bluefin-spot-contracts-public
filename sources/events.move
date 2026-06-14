@@ -8,7 +8,6 @@
 */
 
 module bluefin_spot::events {
-    use sui::object::ID;
     use std::string::{String};
     use sui::event::emit;
 
@@ -17,26 +16,20 @@ module bluefin_spot::events {
     use integer_mate::i128::{I128};
 
     // friend modules
-    friend bluefin_spot::pool;
-    friend bluefin_spot::admin;
-    friend bluefin_spot::tick;
-    friend bluefin_spot::config;
-    #[test_only]
-    friend bluefin_spot::test_event;
 
     //===========================================================//
     //                           Structs                         //
     //===========================================================//
 
-    struct AdminCapTransferred has copy, drop {
+    public struct AdminCapTransferred has copy, drop {
         owner: address
     } 
 
-    struct ProtocolFeeCapTransferred has copy, drop {
+    public struct ProtocolFeeCapTransferred has copy, drop {
         owner: address
     } 
 
-    struct PoolCreated has copy, drop {
+    public struct PoolCreated has copy, drop {
         id: ID,
         coin_a: String,
         coin_a_symbol: String, 
@@ -53,21 +46,21 @@ module bluefin_spot::events {
         protocol_fee_share: u64
     }
 
-    struct PositionOpened has copy, drop {
+    public struct PositionOpened has copy, drop {
         pool_id: ID,
         position_id: ID,
         tick_lower: I32,
         tick_upper: I32
     }
 
-    struct PositionClosed has copy, drop {
+    public struct PositionClosed has copy, drop {
         pool_id: ID,
         position_id: ID,
         tick_lower: I32,
         tick_upper: I32
     }
 
-    struct AssetSwap has copy, drop {
+    public struct AssetSwap has copy, drop {
         pool_id: ID,
         a2b: bool,
         amount_in: u64,
@@ -84,7 +77,7 @@ module bluefin_spot::events {
         sequence_number: u128
     }
 
-    struct FlashSwap has copy, drop {
+    public struct FlashSwap has copy, drop {
         pool_id: ID,
         a2b: bool,
         amount_in: u64,
@@ -100,7 +93,7 @@ module bluefin_spot::events {
 
     }
 
-    struct ProtocolFeeCollected has copy, drop {
+    public struct ProtocolFeeCollected has copy, drop {
         pool_id: ID,
         sender: address,
         destination: address,
@@ -112,7 +105,7 @@ module bluefin_spot::events {
 
     }
 
-    struct UserFeeCollected has copy, drop {
+    public struct UserFeeCollected has copy, drop {
         pool_id: ID,
         position_id: ID,
         coin_a_amount: u64,
@@ -123,7 +116,7 @@ module bluefin_spot::events {
 
     }
 
-    struct UserRewardCollected has copy, drop {
+    public struct UserRewardCollected has copy, drop {
         pool_id: ID,
         position_id: ID,
         reward_type: String,
@@ -134,7 +127,7 @@ module bluefin_spot::events {
     }
 
 
-    struct LiquidityProvided has copy, drop {
+    public struct LiquidityProvided has copy, drop {
         pool_id: ID,
         position_id: ID, 
         coin_a_amount: u64, 
@@ -152,7 +145,7 @@ module bluefin_spot::events {
 
     }
 
-    struct LiquidityRemoved has copy, drop {
+    public struct LiquidityRemoved has copy, drop {
         pool_id: ID,
         position_id: ID, 
         coin_a_amount: u64, 
@@ -169,7 +162,7 @@ module bluefin_spot::events {
         sequence_number: u128
     }
 
-    struct UpdatePoolRewardEmissionEvent has copy, drop {
+    public struct UpdatePoolRewardEmissionEvent has copy, drop {
         pool_id: ID,
         reward_coin_symbol: String,
         reward_coin_type: String,
@@ -181,63 +174,94 @@ module bluefin_spot::events {
         sequence_number: u128
     }
 
-    struct SupportedVersionUpdate has copy, drop {
+    public struct SupportedVersionUpdate has copy, drop {
         old_version: u64, 
         new_version: u64
     }
 
     #[allow(unused_field)]
-    struct TickUpdate has copy, drop {
+    public struct TickUpdate has copy, drop {
         index: I32,
         liquidity_gross: u128,
         liquidity_net: I128
     }
 
-    struct PoolPauseStatusUpdate has copy, drop {
+    public struct PoolPauseStatusUpdate has copy, drop {
         pool_id: ID,
         status: bool,
         sequence_number: u128
     }
 
-    struct RewardsManagerUpdate has copy, drop {
+    public struct RewardsManagerUpdate has copy, drop {
         manager: address,
         is_active: bool
     }
+
+    /// Emitted whenever the admin mutates the reward-emission caps (BET-3885).
+    public struct EmissionCapsUpdated has copy, drop {
+        max_emission_delta_per_window: u64,
+        max_duration_extension_per_window: u64,
+        emission_window_seconds: u64,
+    }
     
-    struct PoolTickUpdate has copy, drop {
+    public struct PoolTickUpdate has copy, drop {
         pool: ID,
         index: I32,
         liquidity_gross: u128,
         liquidity_net: I128
     }
 
-    struct ProtocolFeeShareUpdated has copy, drop {
+    public struct ProtocolFeeShareUpdated has copy, drop {
         pool: ID, 
         previous_protocol_fee_share: u64,
         current_protocol_fee_share: u64,
         sequence_number: u128
     }
 
-    struct ObservationCardinalityUpdated has copy, drop {
+    public struct ObservationCardinalityUpdated has copy, drop {
         pool: ID,
         previous_observation_cardinality: u64,
         current_observation_cardinality: u64,
         sequence_number: u128
     }
 
-    struct PoolManagerUpdate has copy, drop {
+    public struct PoolManagerUpdate has copy, drop {
         pool_id: ID,
         new_manager: address,
         sequence_number: u128,
     }
 
-    struct PoolCreationFeeUpdate has copy, drop {
+    public struct PoolCreationFeeUpdate has copy, drop {
         coin_type: String,
         previous_fee_amount: u64,
         current_fee_amount: u64,
     }
 
-    struct PoolCreationFeePaid has copy, drop {
+    public struct GuardianInitialized has copy, drop {
+        guardian: address,
+        cap_id: sui::object::ID,
+    }
+
+    /// Emitted when an admin rotates the guardian by minting a fresh cap.
+    /// `old_cap_id` becomes a paperweight; `new_cap_id` is now the authorised cap.
+    public struct GuardianRotated has copy, drop {
+        old_guardian: address,
+        new_guardian: address,
+        old_cap_id: sui::object::ID,
+        new_cap_id: sui::object::ID,
+    }
+
+    public struct ProtocolPaused has copy, drop {
+        guardian: address,
+        timestamp_ms: u64,
+    }
+
+    public struct ProtocolUnpaused has copy, drop {
+        guardian: address,
+        timestamp_ms: u64,
+    }
+
+    public struct PoolCreationFeePaid has copy, drop {
         pool: ID, 
         creator: address,
         coin_type: String, 
@@ -245,7 +269,7 @@ module bluefin_spot::events {
         total_accrued_fee: u64
     }
 
-    struct PoolCreationFeeClaimed has copy, drop {
+    public struct PoolCreationFeeClaimed has copy, drop {
         coin_type: String, 
         amount: u64,
         destination: address,
@@ -253,7 +277,7 @@ module bluefin_spot::events {
         accrued_fee_after: u64,         
     }
 
-    struct PoolRewardReservesIncreased has copy, drop {
+    public struct PoolRewardReservesIncreased has copy, drop {
         pool: ID,
         reward_coin_type: String,
         amount: u64,
@@ -261,7 +285,7 @@ module bluefin_spot::events {
         revers_after: u64
     }
 
-    struct PoolIconUrlUpdate has copy, drop {
+    public struct PoolIconUrlUpdate has copy, drop {
         pool_id: ID,
         icon_url: String,
         sequence_number: u128
@@ -272,7 +296,7 @@ module bluefin_spot::events {
     //===========================================================//
 
 
-    public (friend) fun emit_pool_created_event(id: ID, 
+    public(package) fun emit_pool_created_event(id: ID, 
         coin_a: String,
         coin_a_symbol: String, 
         coin_a_decimals: u8, 
@@ -302,7 +326,7 @@ module bluefin_spot::events {
         );
     }
 
-    public (friend) fun emit_liquidity_provided_event(
+    public(package) fun emit_liquidity_provided_event(
         pool_id: ID,
         position_id: ID,
         coin_a_amount: u64, 
@@ -340,7 +364,7 @@ module bluefin_spot::events {
     }
 
 
-    public (friend) fun emit_liquidity_removed_event(
+    public(package) fun emit_liquidity_removed_event(
         pool_id: ID,
         position_id: ID, 
         coin_a_amount: u64, 
@@ -377,7 +401,7 @@ module bluefin_spot::events {
         );        
     }
 
-    public (friend) fun emit_swap_event(
+    public(package) fun emit_swap_event(
         pool_id: ID,
         a2b: bool,
         amount_in: u64,
@@ -416,7 +440,7 @@ module bluefin_spot::events {
     }
 
 
-    public (friend) fun emit_flash_swap_event(
+    public(package) fun emit_flash_swap_event(
         pool_id: ID,
         a2b: bool,
         amount_in: u64,
@@ -449,7 +473,7 @@ module bluefin_spot::events {
         );            
     }
 
-    public(friend) fun emit_admin_cap_transfer_event(owner:address){
+    public(package) fun emit_admin_cap_transfer_event(owner:address){
         emit(
             AdminCapTransferred {
                 owner
@@ -457,7 +481,7 @@ module bluefin_spot::events {
         );
     }
 
-    public(friend) fun emit_protocol_fee_cap_transfer_event(owner:address){
+    public(package) fun emit_protocol_fee_cap_transfer_event(owner:address){
         emit(
             ProtocolFeeCapTransferred {
                 owner
@@ -465,7 +489,7 @@ module bluefin_spot::events {
         );
     }
 
-    public(friend) fun emit_protocol_fee_collected(
+    public(package) fun emit_protocol_fee_collected(
         pool_id: ID,
         sender: address,
         destination: address,
@@ -489,7 +513,7 @@ module bluefin_spot::events {
         );
     }
 
-    public(friend) fun emit_user_fee_collected(
+    public(package) fun emit_user_fee_collected(
         pool_id: ID,
         position_id: ID,
         coin_a_amount: u64,
@@ -510,7 +534,7 @@ module bluefin_spot::events {
         );
     }
 
-    public(friend) fun emit_user_reward_collected(
+    public(package) fun emit_user_reward_collected(
         pool_id: ID, 
         position_id: ID,
         reward_type: String,
@@ -533,7 +557,7 @@ module bluefin_spot::events {
 
 
 
-    public(friend) fun emit_position_open_event(pool_id: ID, position_id: ID, tick_lower: I32, tick_upper: I32) {
+    public(package) fun emit_position_open_event(pool_id: ID, position_id: ID, tick_lower: I32, tick_upper: I32) {
             emit(
                 PositionOpened {
                     pool_id,
@@ -544,7 +568,7 @@ module bluefin_spot::events {
         );
     }
 
-    public(friend) fun emit_position_close_event(pool_id: ID, position_id: ID, tick_lower: I32, tick_upper: I32) {
+    public(package) fun emit_position_close_event(pool_id: ID, position_id: ID, tick_lower: I32, tick_upper: I32) {
             emit(
                 PositionClosed {
                     pool_id,
@@ -555,7 +579,7 @@ module bluefin_spot::events {
         );
     }
 
-     public(friend) fun emit_update_pool_reward_emission_event(
+     public(package) fun emit_update_pool_reward_emission_event(
         pool_id: ID, 
         reward_coin_symbol: String,
         reward_coin_type: String, 
@@ -581,7 +605,7 @@ module bluefin_spot::events {
         );
     }
 
-    public(friend) fun emit_supported_version_update_event(
+    public(package) fun emit_supported_version_update_event(
         old_version: u64,
         new_version: u64
     ) {
@@ -593,7 +617,7 @@ module bluefin_spot::events {
         )
     }
 
-    public(friend) fun emit_tick_update_event(
+    public(package) fun emit_tick_update_event(
         pool: ID,
         index: I32,
         liquidity_gross: u128,
@@ -609,7 +633,7 @@ module bluefin_spot::events {
         )
     }
 
-    public(friend) fun emit_reward_manager_update_event(
+    public(package) fun emit_reward_manager_update_event(
         manager: address,
         is_active: bool
     ) {
@@ -621,7 +645,21 @@ module bluefin_spot::events {
         )
     }
 
-    public(friend) fun emit_protocol_fee_share_updated_event(
+    public(package) fun emit_emission_caps_updated_event(
+        max_emission_delta_per_window: u64,
+        max_duration_extension_per_window: u64,
+        emission_window_seconds: u64,
+    ) {
+        emit(
+            EmissionCapsUpdated {
+                max_emission_delta_per_window,
+                max_duration_extension_per_window,
+                emission_window_seconds,
+            }
+        )
+    }
+
+    public(package) fun emit_protocol_fee_share_updated_event(
         pool: ID,
         previous_protocol_fee_share: u64,
         current_protocol_fee_share: u64,
@@ -637,7 +675,7 @@ module bluefin_spot::events {
         )
     }
 
-    public(friend) fun emit_pool_pause_status_update_event(
+    public(package) fun emit_pool_pause_status_update_event(
         pool_id: ID,
         status: bool,
         sequence_number: u128,
@@ -651,7 +689,7 @@ module bluefin_spot::events {
         )
     }
 
-    public(friend) fun emit_observation_cardinality_updated_event(
+    public(package) fun emit_observation_cardinality_updated_event(
         pool: ID,
         previous_observation_cardinality: u64,
         current_observation_cardinality: u64,
@@ -667,7 +705,7 @@ module bluefin_spot::events {
         )
     }
 
-    public(friend) fun emit_pool_manager_update_event(
+    public(package) fun emit_pool_manager_update_event(
         pool_id: ID,
         new_manager: address,
         sequence_number: u128
@@ -681,7 +719,7 @@ module bluefin_spot::events {
         )
     }
 
-    public(friend) fun emit_pool_creation_fee_update_event(
+    public(package) fun emit_pool_creation_fee_update_event(
         coin_type: String,
         previous_fee_amount: u64,
         current_fee_amount: u64
@@ -695,7 +733,7 @@ module bluefin_spot::events {
         )
     }
 
-    public(friend) fun emit_pool_creation_fee_paid_event(
+    public(package) fun emit_pool_creation_fee_paid_event(
         pool: ID, 
         creator: address,
         coin_type: String,
@@ -714,7 +752,7 @@ module bluefin_spot::events {
     }
 
 
-    public(friend) fun emit_pool_creation_fee_claimed(
+    public(package) fun emit_pool_creation_fee_claimed(
         coin_type: String,
         amount: u64,
         destination: address,
@@ -732,7 +770,7 @@ module bluefin_spot::events {
         )
     }
 
-    public(friend) fun emit_reward_reserves_increased(
+    public(package) fun emit_reward_reserves_increased(
         pool: ID,
         reward_coin_type: String,
         amount: u64,
@@ -750,7 +788,7 @@ module bluefin_spot::events {
         )
     }
 
-    public(friend) fun emit_pool_icon_url_update_event(
+    public(package) fun emit_pool_icon_url_update_event(
         pool_id: ID,
         icon_url: String,
         sequence_number: u128
@@ -760,8 +798,29 @@ module bluefin_spot::events {
                 pool_id,
                 icon_url,
                 sequence_number
-    
+
             }
         )
+    }
+
+    public(package) fun emit_guardian_initialized_event(guardian: address, cap_id: sui::object::ID) {
+        emit(GuardianInitialized { guardian, cap_id })
+    }
+
+    public(package) fun emit_guardian_rotated_event(
+        old_guardian: address,
+        new_guardian: address,
+        old_cap_id: sui::object::ID,
+        new_cap_id: sui::object::ID,
+    ) {
+        emit(GuardianRotated { old_guardian, new_guardian, old_cap_id, new_cap_id })
+    }
+
+    public(package) fun emit_protocol_paused_event(guardian: address, timestamp_ms: u64) {
+        emit(ProtocolPaused { guardian, timestamp_ms })
+    }
+
+    public(package) fun emit_protocol_unpaused_event(guardian: address, timestamp_ms: u64) {
+        emit(ProtocolUnpaused { guardian, timestamp_ms })
     }
 }
