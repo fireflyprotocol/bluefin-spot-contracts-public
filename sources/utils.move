@@ -98,7 +98,7 @@ module bluefin_spot::utils {
             return string::utf8(b"0")
         };
 
-        let vec = vector::empty<u8>();
+        let vec = vector<u8>[];
         while (num > 0) {
             let digit = ((num % 10) as u8);
             num = num / 10;

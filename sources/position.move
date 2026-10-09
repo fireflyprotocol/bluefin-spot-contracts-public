@@ -77,7 +77,7 @@ module bluefin_spot::position {
 
     fun init(otw: POSITION, ctx: &mut TxContext) {
 
-        let keys = vector::empty<String>();
+        let keys = vector<String>[];
         vector::push_back(&mut keys, string::utf8(b"name"));
         vector::push_back(&mut keys, string::utf8(b"id"));
         vector::push_back(&mut keys, string::utf8(b"pool"));
@@ -89,7 +89,7 @@ module bluefin_spot::position {
         vector::push_back(&mut keys, string::utf8(b"project_url"));
         vector::push_back(&mut keys, string::utf8(b"creator"));
 
-        let values = vector::empty<String>();
+        let values = vector<String>[];
         vector::push_back(&mut values, string::utf8(b"{name}"));
         vector::push_back(&mut values, string::utf8(b"{id}"));
         vector::push_back(&mut values, string::utf8(b"{pool_id}"));
@@ -199,7 +199,7 @@ module bluefin_spot::position {
             coin_type_b,
             description: create_position_description(pool_name),
             position_index,
-            reward_infos             : vector::empty<PositionRewardInfo>()
+            reward_infos             : vector<PositionRewardInfo>[]
         }
     }
 

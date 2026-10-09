@@ -188,7 +188,7 @@ module bluefin_spot::tick {
             tick_cumulative_out_side: i64::zero(),
             seconds_per_liquidity_out_side: 0,
             seconds_out_side: 0,
-            reward_growths_outside: vector::empty<u128>()
+            reward_growths_outside: vector<u128>[]
         }
     }
 
@@ -233,7 +233,7 @@ module bluefin_spot::tick {
 
     public fun get_fee_and_reward_growths_outside(manager: &TickManager, tick_index: I32) : (u128, u128, vector<u128>) {
         if (!is_tick_initialized(manager, tick_index)) {
-            (0, 0, vector::empty<u128>())
+            (0, 0, vector<u128>[])
         } else {
             let tick = table::borrow(&manager.ticks,tick_index);
             (tick.fee_growth_outside_a, tick.fee_growth_outside_b, tick.reward_growths_outside)
@@ -252,7 +252,7 @@ module bluefin_spot::tick {
     public fun fetch_provided_ticks(manager: &TickManager, ticks: vector<u32>): vector<TickInfo> {
         let i = 0;
         let count = vector::length(&ticks);
-        let result = vector::empty<TickInfo>();
+        let result = vector<TickInfo>[];
         while(i < count){
             let tick_bits = *vector::borrow(&ticks, i);
             let index = i32::from_u32(tick_bits);
@@ -280,7 +280,7 @@ module bluefin_spot::tick {
         tick_reward_growths: vector<u128> 
     ) : vector<u128> {
         let current_index = 0;
-        let diff_in_reward_growths = vector::empty<u128>();
+        let diff_in_reward_growths = vector<u128>[];
         while (current_index < vector::length<u128>(&reward_growths_global)) {
             let tick_reward_growth = if (current_index >=   vector::length<u128>(&tick_reward_growths)) {
                 0

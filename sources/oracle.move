@@ -59,7 +59,7 @@ module bluefin_spot::oracle {
             observation_index: 0,  
             observation_cardinality: 1,  
             observation_cardinality_next: 1, 
-            observations: vector::empty<Observation>()
+            observations: vector<Observation>[]
         };
 
         let observation = default_observation();
