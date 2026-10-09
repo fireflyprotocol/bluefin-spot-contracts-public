@@ -237,7 +237,7 @@ module bluefin_spot::pool {
     }
 
     public (friend) fun update_reward_infos<CoinTypeA, CoinTypeB>(pool: &mut Pool<CoinTypeA, CoinTypeB>, current_timestamp_seconds: u64) : vector<u128> {
-        let reward_growth_globals = vector::empty<u128>();
+        let reward_growth_globals = vector<u128>[];
         let current_index = 0;
         while (current_index < vector::length<PoolRewardInfo>(&pool.reward_infos)) {
             let reward_info = vector::borrow_mut<PoolRewardInfo>(&mut pool.reward_infos, current_index);
@@ -914,7 +914,7 @@ module bluefin_spot::pool {
             starting_liquidity         : pool.liquidity, 
             liquidity                  : pool.liquidity, 
             steps                      : 0,
-            step_results               : vector::empty<SwapStepResult>(),
+            step_results               : vector<SwapStepResult>[],
         };
 
         // Iterate until the amount to be swapped becomes zero
@@ -1596,7 +1596,7 @@ module bluefin_spot::pool {
             starting_liquidity         : pool.liquidity, 
             liquidity                  : pool.liquidity, 
             steps                      : 0,
-            step_results               : vector::empty<SwapStepResult>(),
+            step_results               : vector<SwapStepResult>[],
         };
 
         // Iterate until the amount to be swapped becomes zero
@@ -2021,7 +2021,7 @@ module bluefin_spot::pool {
             icon_url: string::utf8(icon_url),
             position_index: 0,
             sequence_number: 0,
-            reward_infos: vector::empty<PoolRewardInfo>()
+            reward_infos: vector<PoolRewardInfo>[]
         };
 
         // add pool creator as manager
@@ -2073,7 +2073,7 @@ module bluefin_spot::pool {
         let fee_coin_type = utils::get_type_string<CoinTypeFee>();
 
         // create the dynamic field if it does not exist
-        if(!field::exists_(config_id, fee_coin_type)){
+        if(!field::exists(config_id, fee_coin_type)){
                 field::add(
                     config_id,
                     fee_coin_type,
@@ -2095,7 +2095,7 @@ module bluefin_spot::pool {
     }
 
     fun is_flash_swap_in_progress(pool: &UID): bool {
-        field::exists_(pool, constants::flash_swap_in_progress_key())
+        field::exists(pool, constants::flash_swap_in_progress_key())
     }
 
     #[test_only]

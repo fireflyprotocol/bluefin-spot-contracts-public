@@ -426,7 +426,7 @@ module bluefin_spot::admin {
         let fee_coin_type = utils::get_type_string<CoinTypeFee>();
 
         // create the dynamic field if it does not exist
-        if(!dynamic_field::exists_(uid, key)){
+        if(!dynamic_field::exists(uid, key)){
                 dynamic_field::add(
                     uid,
                     key,
@@ -476,7 +476,7 @@ module bluefin_spot::admin {
         assert!(amount > 0, errors::zero_amount());
 
         // revert if the provided fee coin does not exist
-        assert!(dynamic_field::exists_(uid, fee_coin_type), errors::fee_coin_not_supported());
+        assert!(dynamic_field::exists(uid, fee_coin_type), errors::fee_coin_not_supported());
 
         // take the requested fee amount and transfer to destination
         let accrued_fee = dynamic_field::borrow_mut<String ,Balance<CoinTypeFee>>(uid, fee_coin_type);

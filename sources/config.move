@@ -104,7 +104,7 @@ module bluefin_spot::config {
             min_tick: tick_math::min_tick(), 
             max_tick: tick_math::max_tick(),
             version: VERSION,
-            reward_managers: vector::empty<address>()
+            reward_managers: vector<address>[]
         };
 
         transfer::share_object(config);
@@ -146,7 +146,7 @@ module bluefin_spot::config {
         let key = constants::pool_creation_fee_dynamic_key();
         let fee_coin_type = utils::get_type_string<CoinTypeFee>();
 
-        if(!dynamic_field::exists_(uid, key)){
+        if(!dynamic_field::exists(uid, key)){
             return (false, 0)   
         };
 
@@ -171,7 +171,7 @@ module bluefin_spot::config {
             min_tick: tick_math::min_tick(), 
             max_tick: tick_math::max_tick(),
             version: VERSION,
-            reward_managers: vector::empty<address>()
+            reward_managers: vector<address>[]
         };
 
         config

@@ -34,7 +34,7 @@ module bluefin_spot::tick_bitmap {
 
         let lib_index = i32H::mate_to_lib(index);
 
-        assert!(i32::abs_u32(lib_index) % tick_spacing == 0, 0);
+        assert!(i32::abs_u32(lib_index) % tick_spacing == 0, 0u64);
         let (word, bit) = position(i32::div(lib_index, i32::from(tick_spacing)));
         let word = get_mutable_tick_word(bitmap, i32H::lib_to_mate(word));
         *word = *word ^ 1 << bit;
