@@ -37,8 +37,7 @@ module bluefin_spot::config {
     /// Tracks the current version of the package. Every time a breaking change is pushed, 
     /// increment the version on the new package, making any old version of the package 
     /// unable to be used
-    const VERSION: u64 = 8;
-
+    const VERSION: u64 = 9;
 
     /// The protocol's config
     struct GlobalConfig has key, store {

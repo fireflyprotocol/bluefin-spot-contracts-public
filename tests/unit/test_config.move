@@ -1,12 +1,3 @@
-/*
-  Copyright (c) 2025 Bluefin Labs Inc.
-  Proprietary Smart Contract License – All Rights Reserved.
-
-  This source code is provided for transparency and verification only.
-  Use, modification, reproduction, or redeployment of this code 
-  requires prior written permission from the Bluefin Labs Inc.
-*/
-
 #[test_only]
 module bluefin_spot::test_config {
     use sui::test_scenario::{Self, Scenario};
@@ -48,7 +39,7 @@ module bluefin_spot::test_config {
         let config = create_test_config(&mut scenario);
         
         // Check initial values
-        assert!(config::get_version(&config) == 8, 0); // VERSION constant
+        assert!(config::get_version(&config) == 9, 0); // VERSION constant
         assert!(MateI32::eq(config::get_min_tick(&config), tick_math::min_tick()), 1);
         assert!(MateI32::eq(config::get_max_tick(&config), tick_math::max_tick()), 2);
         assert!(vector::length(config::get_reward_managers(&config)) == 0, 3);
@@ -124,7 +115,7 @@ module bluefin_spot::test_config {
         let config = create_test_config(&mut scenario);
         
         let version = config::get_supported_version(&config);
-        assert!(version == 8, 0);
+        assert!(version == 9, 0);
         
         config::destroy_config_for_testing(config);
         test_scenario::end(scenario);
@@ -209,7 +200,7 @@ module bluefin_spot::test_config {
         let config = create_test_config(&mut scenario);
         
         // Set version to VERSION (8)
-        config::set_version(&mut config, 8);
+        config::set_version(&mut config, 9);
         
         // Should fail when trying to increase beyond VERSION
         config::increase_supported_version(&mut config);
@@ -469,7 +460,7 @@ module bluefin_spot::test_config {
         let config = create_test_config(&mut scenario);
         
         // 1. Verify initial state
-        assert!(config::get_version(&config) == 8, 0);
+        assert!(config::get_version(&config) == 9, 0);
         assert!(vector::length(config::get_reward_managers(&config)) == 0, 1);
         
         // 2. Add reward managers
@@ -602,7 +593,7 @@ module bluefin_spot::test_config {
         let _id = config::get_id(&config);
         
         assert!(version == supported_version, 0);
-        assert!(version == 8, 1);
+        assert!(version == 9, 1);
         assert!(MateI32::eq(min_tick, tick_math::min_tick()), 2);
         assert!(MateI32::eq(max_tick, tick_math::max_tick()), 3);
         assert!(vector::length(managers) == 0, 4);
