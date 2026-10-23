@@ -11,6 +11,8 @@ Sui smart contracts for bluefin spot exchange
 
 Mainnet v17 was built with Sui CLI [`mainnet-v1.61.2`](https://github.com/MystenLabs/sui/releases/tag/mainnet-v1.61.2), which produces the deployed bytecode format v6.
 
+`Move.toml` references the moving `framework/mainnet` branch. To rebuild v17, pin the `Sui` dependency to `rev = "6c229fe6c04fb21ec98751c798e57e9a00e028e2"` (the `mainnet-v1.61.2` framework).
+
 ## Usage
 
 -   Install/Update submodules using `yarn submodules`
